@@ -1,0 +1,8 @@
+{
+  "name": "TailTalk AI",
+  "description": "The Digital Brain for Your Best Friend. A high-vibe pet health tracker using Voice AI to log events, predict bathroom breaks, and analyze pet wellness through a charming canine persona.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
