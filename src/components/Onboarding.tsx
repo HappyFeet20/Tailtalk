@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { DogProfile } from '../types';
-import { ChevronRight, Sparkles, Dog, Shield, Activity, Star } from 'lucide-react';
+import { ChevronRight, Sparkles, Dog, Shield, Activity, Star, Share2, Copy, CheckCircle, UserPlus } from 'lucide-react';
 import { generateDogAvatar } from '../services/geminiService';
 import { COMMON_BREEDS } from '../constants';
 
@@ -18,6 +18,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     lifeStage: 'adult',
     sex: 'male'
   });
+  const [pendingProfile, setPendingProfile] = useState<DogProfile | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSent, setInviteSent] = useState(false);
 
   const filteredBreeds = useMemo(() => {
     if (!profile.breed.trim()) return [];
@@ -33,13 +37,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleFinalSelection = async (stage: 'puppy' | 'adult' | 'senior') => {
+    // Save the profile with chosen stage, then go to invite step
+    const updatedProfile = { ...profile, lifeStage: stage };
+    setProfile(updatedProfile);
+    setPendingProfile(updatedProfile);
+    setStep(4);
+  };
+
+  const finishOnboarding = async () => {
+    if (!pendingProfile) return;
     setIsFinishing(true);
     setStatusMsg(`Curating visual identity...`);
 
-    const avatarUrl = await generateDogAvatar(profile.breed, stage);
+    const avatarUrl = await generateDogAvatar(pendingProfile.breed, pendingProfile.lifeStage);
     const finalProfile = {
-      ...profile,
-      lifeStage: stage,
+      ...pendingProfile,
       avatarUrl: avatarUrl || undefined
     };
 
@@ -51,6 +63,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     }, 3000);
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleSendInvite = () => {
+    if (!inviteEmail.trim()) return;
+    // Use mailto as a lightweight invite mechanism
+    const subject = encodeURIComponent(`Join me on TailTalk AI — Track ${profile.name}'s health!`);
+    const body = encodeURIComponent(
+      `Hey! I'm using TailTalk AI to track ${profile.name}'s health and wellness. Join me so we can share updates!\n\nOpen the app here: ${window.location.href}\n\nSign up with your email and we'll be synced!`
+    );
+    window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, '_blank');
+    setInviteSent(true);
+    setTimeout(() => setInviteSent(false), 3000);
+  };
+
   if (isFinishing) {
     return (
       <div className="fixed inset-0 z-[200] bg-luxe-base flex flex-col items-center justify-center p-10 text-center overflow-hidden">
@@ -59,7 +89,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         <div className="relative mb-12">
           <div className="w-40 h-40 border-[3px] border-luxe-orange/10 border-t-luxe-orange rounded-full animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-24 h-24 bg-white shadow-xl rounded-[2.5rem] flex items-center justify-center text-luxe-orange rotate-12 transition-transform duration-1000">
+            <div className="w-24 h-24 bg-luxe-pearl shadow-xl rounded-[2.5rem] flex items-center justify-center text-luxe-orange rotate-12 transition-transform duration-1000">
               <Star size={40} className="animate-pulse" />
             </div>
           </div>
@@ -80,14 +110,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 z-[150] bg-luxe-base flex flex-col items-center justify-between p-10 pt-24 pb-20 overflow-hidden">
-      {/* Background Decor - Higher-end light mode aesthetics */}
+      {/* Background Decor */}
       <div className="absolute top-[-20%] right-[-10%] w-[100%] h-[100%] bg-gradient-to-bl from-luxe-orange/10 via-transparent to-transparent pointer-events-none"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-luxe-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-sm relative z-10 flex-1 flex flex-col">
         {/* Step Indicator - Pearl Dots */}
         <div className="flex items-center gap-4 mb-20">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
               className={`h-2 rounded-full transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) ${step === i ? 'w-20 bg-luxe-orange shadow-[0_4px_12px_rgba(255,140,0,0.3)]' : 'w-4 bg-luxe-deep/10'
@@ -126,7 +156,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 flex-1">
             <div className="space-y-4">
               <span className="text-[11px] font-black uppercase tracking-[0.5em] text-luxe-orange">Inheritance</span>
-              <h1 className="font-serif text-5xl italic font-bold leading-tight text-luxe-deep">Define <span className="text-luxe-orange">linage</span> of {profile.name}</h1>
+              <h1 className="font-serif text-5xl italic font-bold leading-tight text-luxe-deep">Define <span className="text-luxe-orange">lineage</span> of {profile.name}</h1>
             </div>
 
             <div className="relative">
@@ -162,8 +192,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   key={sex}
                   onClick={() => setProfile({ ...profile, sex })}
                   className={`flex-1 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] transition-all border ${profile.sex === sex
-                      ? 'bg-luxe-orange border-luxe-orange text-white shadow-xl translate-y-[-2px]'
-                      : 'glass border-luxe-deep/5 text-luxe-deep/30'
+                    ? 'bg-luxe-orange border-luxe-orange text-white shadow-xl translate-y-[-2px]'
+                    : 'glass border-luxe-deep/5 text-luxe-deep/30'
                     }`}
                 >
                   {sex}
@@ -208,7 +238,107 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </div>
         )}
 
-        {/* Action Button - Pearlescent Edition */}
+        {step === 4 && (
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700 flex-1">
+            <div className="space-y-4">
+              <span className="text-[11px] font-black uppercase tracking-[0.5em] text-luxe-orange">Pack</span>
+              <h1 className="font-serif text-5xl italic font-bold leading-tight text-luxe-deep">Invite your <br /><span className="text-luxe-orange">pack.</span></h1>
+              <p className="text-base opacity-40 font-medium italic leading-relaxed">
+                Share {profile.name}'s profile with family members or co-owners so everyone stays in sync.
+              </p>
+            </div>
+
+            {/* Share Link */}
+            <div className="card-pearl p-8 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-[1.5rem] bg-luxe-orange/10 flex items-center justify-center text-luxe-orange">
+                  <Share2 size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-luxe-deep">Share App Link</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Anyone with this link can join</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCopyLink}
+                className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${linkCopied
+                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                  : 'glass text-luxe-deep hover:bg-luxe-pearl active:scale-[0.98]'
+                  }`}
+              >
+                {linkCopied ? (
+                  <>
+                    <CheckCircle size={18} />
+                    <span>Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={18} />
+                    <span>Copy App Link</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Email Invite */}
+            <div className="card-pearl p-8 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-[1.5rem] bg-luxe-gold/10 flex items-center justify-center text-luxe-gold">
+                  <UserPlus size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-luxe-deep">Invite by Email</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Send a personal invitation</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <input
+                  type="email"
+                  placeholder="partner@email.com"
+                  className="flex-1 bg-luxe-base border-2 border-transparent focus:border-luxe-gold/30 rounded-2xl px-5 py-4 text-sm font-medium outline-none transition-all placeholder:text-luxe-deep/20 text-luxe-deep"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendInvite()}
+                />
+                <button
+                  onClick={handleSendInvite}
+                  disabled={!inviteEmail.trim()}
+                  className="px-6 py-4 bg-luxe-gold text-luxe-base rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-20 disabled:grayscale active:scale-95 transition-all"
+                >
+                  Send
+                </button>
+              </div>
+
+              {inviteSent && (
+                <div className="flex items-center gap-2 text-green-400 animate-in fade-in duration-500">
+                  <CheckCircle size={14} />
+                  <span className="text-xs font-bold">Opening email client...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Continue Button */}
+            <div className="pt-4">
+              <button
+                onClick={finishOnboarding}
+                className="w-full py-8 btn-luxe rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs text-white flex items-center justify-center gap-4 overflow-hidden"
+              >
+                <span className="relative z-10">Continue to Dashboard</span>
+                <ChevronRight size={20} className="relative z-10" />
+              </button>
+              <button
+                onClick={finishOnboarding}
+                className="w-full mt-4 py-4 text-luxe-deep/30 text-[10px] font-black uppercase tracking-[0.4em] hover:text-luxe-deep/60 transition-colors"
+              >
+                Skip — I'll invite later
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Action Button for Steps 1-2 */}
         {step < 3 && (
           <div className="pt-16">
             <button
@@ -229,7 +359,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <Dog size={20} />
           <div className="w-12 h-px bg-luxe-orange/30"></div>
         </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.6em] text-luxe-deep/20 text-center">Elite Canine intelligence</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.6em] text-luxe-deep/20 text-center">Elite Canine Intelligence</p>
       </div>
     </div>
   );

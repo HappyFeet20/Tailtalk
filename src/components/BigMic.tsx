@@ -98,8 +98,8 @@ const BigMic: React.FC<BigMicProps> = ({ onTranscript, isProcessing }) => {
           style={{
             background: isListening
               ? 'linear-gradient(135deg, #FF8C00, #FF4500)'
-              : 'linear-gradient(135deg, #FFFFFF, #F8FAFC)',
-            border: isListening ? 'none' : '1px solid rgba(255,255,255,0.8)'
+              : 'linear-gradient(135deg, #1E293B, #0F172A)',
+            border: isListening ? 'none' : '1px solid rgba(255,255,255,0.1)'
           }}
         >
           {/* Internal Shimmer Layer */}

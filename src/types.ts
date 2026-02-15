@@ -12,6 +12,7 @@ export interface DogProfile {
   name: string;
   breed: string;
   lifeStage: 'puppy' | 'adult' | 'senior';
+  sex?: 'male' | 'female';
   avatarUrl?: string;
 }
 

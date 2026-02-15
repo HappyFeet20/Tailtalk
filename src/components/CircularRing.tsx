@@ -40,7 +40,7 @@ const CircularRing: React.FC<CircularRingProps> = ({ value, label, color, size =
         <svg height={size} width={size} className="relative transform -rotate-90 overflow-visible transition-all duration-700 ease-out group-hover:scale-105">
           {/* Backdrop Track - Pearlescent Gray */}
           <circle
-            stroke="#F1F5F9"
+            stroke="#1E1E1E"
             fill="transparent"
             strokeWidth={strokeWidth}
             r={normalizedRadius}
