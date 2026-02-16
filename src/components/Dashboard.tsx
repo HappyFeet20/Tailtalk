@@ -28,7 +28,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
   const [manualEvent, setManualEvent] = useState({
     type: EventType.WALK,
     rawText: '',
-    metadata: {}
+    metadata: {},
+    dateTime: '',
   });
 
   // --- Insights state ---
@@ -137,12 +138,16 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     e.preventDefault();
     if (!manualEvent.rawText) return;
 
+    const timestamp = manualEvent.dateTime
+      ? new Date(manualEvent.dateTime).getTime()
+      : Date.now();
+
     addEvent({
       ...manualEvent,
-      timestamp: Date.now(),
+      timestamp,
     } as any);
 
-    setManualEvent({ type: EventType.WALK, rawText: '', metadata: {} });
+    setManualEvent({ type: EventType.WALK, rawText: '', metadata: {}, dateTime: '' });
     setIsAddingEvent(false);
   };
 
@@ -343,6 +348,27 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
                 onChange={(e) => setManualEvent(prev => ({ ...prev, rawText: e.target.value }))}
                 required
               />
+
+              {/* Date & Time Picker */}
+              <div className="flex items-center gap-3 bg-luxe-base rounded-2xl px-4 py-3">
+                <Calendar size={16} className="text-luxe-orange flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <input
+                    type="datetime-local"
+                    className="w-full bg-transparent text-sm font-medium text-luxe-deep outline-none [color-scheme:light]"
+                    value={manualEvent.dateTime || new Date().toISOString().slice(0, 16)}
+                    onChange={(e) => setManualEvent(prev => ({ ...prev, dateTime: e.target.value }))}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setManualEvent(prev => ({ ...prev, dateTime: new Date().toISOString().slice(0, 16) }))}
+                  className="text-[8px] font-black uppercase tracking-widest text-luxe-orange/60 hover:text-luxe-orange transition-colors flex-shrink-0"
+                >
+                  Now
+                </button>
+              </div>
+
               <button
                 type="submit"
                 className="w-full py-3.5 bg-luxe-orange text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-luxe-orange/20 active:scale-[0.98] transition-all"

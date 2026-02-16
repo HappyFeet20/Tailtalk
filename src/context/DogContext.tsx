@@ -30,7 +30,7 @@ interface DogContextType {
     setDog: (profile: DogProfile | null) => void;
     setStats: React.Dispatch<React.SetStateAction<DogStats>>;
     setEvents: React.Dispatch<React.SetStateAction<DogEvent[]>>;
-    addEvent: (event: Omit<DogEvent, 'id' | 'timestamp'>) => void;
+    addEvent: (event: Omit<DogEvent, 'id'> & { timestamp?: number }) => void;
     removeEvent: (id: string) => void;
     resetDog: () => void;
     addUser: (name: string, emoji?: string) => UserProfile;
@@ -270,12 +270,12 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUsers(prev => prev.filter(u => u.id !== id || u.role === 'admin'));
     };
 
-    const addEvent = async (eventData: Omit<DogEvent, 'id' | 'timestamp'>) => {
+    const addEvent = async (eventData: Omit<DogEvent, 'id'> & { timestamp?: number }) => {
         const currentPackId = packId || dog?.packId;
         const newEvent: DogEvent = {
             ...eventData,
             id: self.crypto.randomUUID ? self.crypto.randomUUID() : Math.random().toString(36).substring(2),
-            timestamp: Date.now(),
+            timestamp: eventData.timestamp || Date.now(),
             pack_id: currentPackId || undefined,
             logged_by: currentUser?.name || undefined,
         };
