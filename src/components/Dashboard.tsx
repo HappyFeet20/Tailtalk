@@ -44,7 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
       await refreshData();
 
       // 2. Regenerate AI insights if enough data
-      if (events.length >= 5) {
+      if (events.length >= 3) {
         setInsightsLoading(true);
         try {
           const newInsights = await generateInsights(events, dogProfile);
@@ -78,7 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
   };
 
   useEffect(() => {
-    if (!insightsFetched.current && events.length >= 5) {
+    if (!insightsFetched.current && events.length >= 3) {
       insightsFetched.current = true;
       fetchInsights();
     }
@@ -224,12 +224,12 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
           onClick={handleFullRefresh}
           disabled={isRefreshing}
           className={`absolute top-4 right-4 z-20 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 active:scale-95 ${isRefreshing
-              ? 'bg-luxe-orange/10 text-luxe-orange shadow-lg shadow-luxe-orange/10'
-              : syncStatus === 'synced'
-                ? 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30 hover:text-luxe-deep/60 hover:shadow-lg hover:bg-white'
-                : syncStatus === 'error'
-                  ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                  : 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30'
+            ? 'bg-luxe-orange/10 text-luxe-orange shadow-lg shadow-luxe-orange/10'
+            : syncStatus === 'synced'
+              ? 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30 hover:text-luxe-deep/60 hover:shadow-lg hover:bg-white'
+              : syncStatus === 'error'
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                : 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30'
             }`}
         >
           <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
@@ -582,7 +582,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
       </div>
 
       {/* 5. AI Insights Card */}
-      {events.length >= 5 && (
+      {events.length >= 3 && (
         <div className="px-4">
           <div className="card-pearl p-8 relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
