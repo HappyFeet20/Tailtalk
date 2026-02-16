@@ -109,7 +109,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-[150] bg-luxe-base flex flex-col items-center justify-between p-10 pt-24 pb-20 overflow-hidden">
+    <div className="fixed inset-0 z-[150] bg-luxe-base flex flex-col items-center p-10 pt-24 pb-20 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* Background Decor */}
       <div className="absolute top-[-20%] right-[-10%] w-[100%] h-[100%] bg-gradient-to-bl from-luxe-orange/10 via-transparent to-transparent pointer-events-none"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-luxe-gold/10 rounded-full blur-[100px] pointer-events-none"></div>

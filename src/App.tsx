@@ -26,9 +26,9 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] flex justify-center sm:items-center sm:py-10">
+    <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex justify-center sm:items-center sm:py-10">
       {/* iPhone Container */}
-      <div className="w-full max-w-[430px] h-full sm:h-[932px] sm:max-h-[85vh] bg-luxe-base relative sm:rounded-[60px] sm:border-[14px] sm:border-[#1a1a1a] shadow-2xl overflow-hidden flex flex-col">
+      <div className="w-full max-w-[430px] h-[100dvh] sm:h-[932px] sm:max-h-[85vh] bg-luxe-base relative sm:rounded-[60px] sm:border-[14px] sm:border-[#1a1a1a] shadow-2xl flex flex-col overflow-hidden">
         {/* Dynamic Background Elements */}
         <div className="absolute top-[-10%] left-[-10%] w-[150%] h-[50%] bg-luxe-orange/10 rounded-full blur-[120px] pointer-events-none animate-float"></div>
         <div className="absolute bottom-[-5%] right-[-5%] w-[140%] h-[40%] bg-luxe-gold/10 rounded-full blur-[100px] pointer-events-none animate-float" style={{ animationDelay: '-2s' }}></div>
@@ -118,7 +118,7 @@ const AppContent: React.FC = () => {
           </div>
         )}
 
-        <main className="flex-1 w-full overflow-y-auto hide-scrollbar pt-24 pb-40 px-4">
+        <main className="flex-1 w-full overflow-y-auto hide-scrollbar pt-24 pb-40 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <Dashboard
             stats={stats}
             events={events}
