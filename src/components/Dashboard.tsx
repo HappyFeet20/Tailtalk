@@ -418,41 +418,66 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
         </div>
       </div>
 
-      {/* 3. Biometric Bento Grid - Vitals */}
-      <div className="px-2 space-y-4">
-        <div className="flex items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-luxe-orange animate-pulse"></div>
-            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Vitals</h2>
+      {/* 3. Vitals Dashboard */}
+      <div className="px-4 space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-luxe-orange/10 flex items-center justify-center">
+              <Heart size={18} className="text-luxe-orange" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-luxe-deep">Vitals</h2>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/20">Live Biometrics</p>
+            </div>
           </div>
-          <TrendingUp size={16} className="text-luxe-deep opacity-40" />
+          <TrendingUp size={16} className="text-luxe-deep opacity-20" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-1 card-pearl p-8 flex flex-col items-center justify-center gap-6 relative overflow-hidden group">
-            <div className={`absolute -bottom-10 -right-10 w-32 h-32 bg-luxe-orange/5 rounded-full blur-3xl transition-transform duration-1000 group-hover:scale-150`}></div>
-            <CircularRing value={stats.tummy} label="Hydration" color="#FF8C00" size={110} strokeWidth={10} />
+        <div className="card-pearl p-8 relative overflow-hidden">
+          {/* Gradient mesh background */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-20 -left-20 w-60 h-60 bg-luxe-orange/5 rounded-full blur-[80px]"></div>
+            <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-blue-500/5 rounded-full blur-[80px]"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-luxe-gold/5 rounded-full blur-[60px]"></div>
           </div>
 
-          <div className="grid grid-rows-2 gap-4">
-            <div className="card-pearl p-6 flex items-center gap-5">
-              <div className="w-14 h-14 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
-                <Droplets size={24} />
+          <div className="relative z-10 flex justify-around items-start">
+            {[
+              {
+                value: stats.tummy,
+                label: 'Tummy',
+                color: '#FF8C00',
+                status: stats.tummy > 70 ? 'Full' : stats.tummy > 35 ? 'Peckish' : 'Hungry',
+                statusColor: stats.tummy > 70 ? 'text-emerald-400' : stats.tummy > 35 ? 'text-yellow-400' : 'text-red-400',
+              },
+              {
+                value: stats.tank,
+                label: 'Tank',
+                color: '#3B82F6',
+                status: stats.tank > 70 ? 'Topped Up' : stats.tank > 35 ? 'Sipping' : 'Thirsty',
+                statusColor: stats.tank > 70 ? 'text-emerald-400' : stats.tank > 35 ? 'text-yellow-400' : 'text-red-400',
+              },
+              {
+                value: stats.energy,
+                label: 'Energy',
+                color: '#D4AF37',
+                status: stats.energy > 70 ? 'Charged' : stats.energy > 35 ? 'Steady' : 'Tired',
+                statusColor: stats.energy > 70 ? 'text-emerald-400' : stats.energy > 35 ? 'text-yellow-400' : 'text-red-400',
+              },
+            ].map((vital) => (
+              <div key={vital.label} className="flex flex-col items-center gap-1">
+                <CircularRing
+                  value={vital.value}
+                  label={vital.label}
+                  color={vital.color}
+                  size={100}
+                  strokeWidth={8}
+                />
+                <span className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${vital.statusColor}`}>
+                  {vital.status}
+                </span>
               </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/20">Tank</span>
-                <p className="text-2xl font-bold text-luxe-deep tracking-tight">{Math.round(stats.tank)}<span className="text-sm opacity-20 font-medium ml-0.5">%</span></p>
-              </div>
-            </div>
-            <div className="card-pearl p-6 flex items-center gap-5">
-              <div className="w-14 h-14 rounded-3xl bg-luxe-gold/10 flex items-center justify-center text-luxe-gold shadow-inner">
-                <Zap size={24} />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/20">Energy</span>
-                <p className="text-2xl font-bold text-luxe-deep tracking-tight">{Math.round(stats.energy)}<span className="text-sm opacity-20 font-medium ml-0.5">%</span></p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
