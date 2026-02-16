@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import CircularRing from './CircularRing';
 import { DogEvent, DogStats, EventType, DogProfile } from '../types';
 import { COLORS } from '../constants';
-import { Utensils, Droplets, Footprints, AlertCircle, History, Filter, Clock, TrendingUp, Calendar, Zap, Crown, Trash2, Plus, X, Camera, Heart, Stethoscope } from 'lucide-react';
+import { Utensils, Droplets, Footprints, AlertCircle, History, Filter, Clock, TrendingUp, Calendar, Zap, Crown, Trash2, Plus, X, Heart, Stethoscope } from 'lucide-react';
 import { useDog } from '../context/DogContext';
-import { analyzeStool } from '../services/geminiService';
+
 
 interface DashboardProps {
   stats: DogStats;
@@ -29,10 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     metadata: {}
   });
 
-  // Stool scan state
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ analysis: string; advice?: string; consistency: number; healthFlag: boolean } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const handleAddManualEvent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,43 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     }));
   };
 
-  const handleStoolScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    setIsScanning(true);
-    setScanResult(null);
-
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        try {
-          const result = await analyzeStool(base64);
-          setScanResult(result);
-
-          // Auto-log a health check event
-          addEvent({
-            type: EventType.HEALTH_CHECK,
-            rawText: `Stool scan: ${result.analysis}`,
-            metadata: {
-              consistency: result.consistency,
-              healthFlag: result.healthFlag,
-            },
-          } as any);
-        } catch (err) {
-          console.error('Stool analysis failed:', err);
-          setScanResult({ analysis: 'Analysis failed. Please try again.', consistency: 0, healthFlag: false });
-        } finally {
-          setIsScanning(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      console.error('File read error:', err);
-      setIsScanning(false);
-    }
-  };
 
   useEffect(() => {
     setIsAvatarAnimating(true);
@@ -286,61 +247,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
         </div>
       </div>
 
-      {/* Stool Scan Section */}
-      <div className="px-4">
-        <div className="card-pearl p-8 relative overflow-hidden">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-[1.5rem] bg-pink-500/10 flex items-center justify-center text-pink-500">
-              <Camera size={22} />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-luxe-deep">Stool Scanner</h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">AI-Powered Health Analysis</p>
-            </div>
-          </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleStoolScan}
-          />
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isScanning}
-            className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all ${isScanning
-              ? 'glass text-luxe-deep/30'
-              : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/20 active:scale-[0.98] hover:shadow-xl'
-              }`}
-          >
-            {isScanning ? 'Analyzing...' : 'Capture & Analyze'}
-          </button>
-
-          {scanResult && (
-            <div className="mt-6 p-6 glass rounded-2xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/40">Result</span>
-                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${scanResult.healthFlag ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                  {scanResult.healthFlag ? 'Flag Raised' : 'Looking Good'}
-                </span>
-              </div>
-              <p className="text-sm text-luxe-deep/70 italic leading-relaxed">{scanResult.analysis}</p>
-              {scanResult.advice && (
-                <p className="text-xs text-luxe-gold/80 font-medium border-l-2 border-luxe-gold/30 pl-4">{scanResult.advice}</p>
-              )}
-              <button
-                onClick={() => setScanResult(null)}
-                className="text-[10px] text-luxe-deep/20 hover:text-luxe-deep/60 uppercase tracking-widest transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* 4. Journal Feed - Pearlescent Timeline */}
       <div className="px-4 space-y-8">
