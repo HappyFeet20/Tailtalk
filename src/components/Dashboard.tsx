@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CircularRing from './CircularRing';
 import { DogEvent, DogStats, EventType, DogProfile } from '../types';
 import { COLORS } from '../constants';
-import { Utensils, Droplets, Footprints, AlertCircle, History, Filter, Clock, TrendingUp, Calendar, Zap, Crown, Trash2, Plus, X, Heart, Stethoscope } from 'lucide-react';
+import { Utensils, Droplets, Footprints, AlertCircle, History, Filter, Clock, TrendingUp, Calendar, Zap, Crown, Trash2, Plus, X, Heart, Stethoscope, Sparkles, RefreshCw, Flame, Award } from 'lucide-react';
 import { useDog } from '../context/DogContext';
+import { generateInsights } from '../services/geminiService';
 
 
 interface DashboardProps {
@@ -28,6 +29,78 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     rawText: '',
     metadata: {}
   });
+
+  // --- Insights state ---
+  const [insights, setInsights] = useState<string[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const insightsFetched = useRef(false);
+
+  const fetchInsights = async () => {
+    if (events.length < 3) return;
+    setInsightsLoading(true);
+    try {
+      const result = await generateInsights(events, dogProfile);
+      setInsights(result);
+    } catch (err) {
+      console.error('Insights generation failed:', err);
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!insightsFetched.current && events.length >= 5) {
+      insightsFetched.current = true;
+      fetchInsights();
+    }
+  }, [events.length]);
+
+  // --- Streak calculation ---
+  const streaks = useMemo(() => {
+    const dayKey = (ts: number) => new Date(ts).toDateString();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const calcStreak = (types: EventType[], minPerDay: number) => {
+      // Build a set of days that qualify
+      const dayMap: Record<string, number> = {};
+      events.forEach(e => {
+        if (types.includes(e.type)) {
+          const key = dayKey(e.timestamp);
+          dayMap[key] = (dayMap[key] || 0) + 1;
+        }
+      });
+
+      // Count consecutive days backwards from today
+      let streak = 0;
+      const d = new Date(today);
+      for (let i = 0; i < 365; i++) {
+        const key = d.toDateString();
+        if ((dayMap[key] || 0) >= minPerDay) {
+          streak++;
+        } else if (i > 0) {
+          break; // allow today to be incomplete
+        }
+        d.setDate(d.getDate() - 1);
+      }
+      return streak;
+    };
+
+    return {
+      walks: calcStreak([EventType.WALK], 1),
+      feeding: calcStreak([EventType.FOOD], 2),
+      hydration: calcStreak([EventType.WATER], 1),
+      totalEvents: events.length,
+    };
+  }, [events]);
+
+  const badges = useMemo(() => [
+    { name: 'First Steps', icon: '🐾', condition: events.some(e => e.type === EventType.WALK), desc: 'Logged first walk' },
+    { name: 'Week Warrior', icon: '⚡', condition: streaks.walks >= 7, desc: '7-day walk streak' },
+    { name: 'Hydration Hero', icon: '💎', condition: streaks.hydration >= 5, desc: '5-day hydration streak' },
+    { name: 'Iron Stomach', icon: '👑', condition: streaks.feeding >= 7, desc: '7-day feeding streak' },
+    { name: 'Century Club', icon: '🏆', condition: streaks.totalEvents >= 100, desc: '100+ events logged' },
+  ], [streaks, events]);
 
 
 
@@ -160,6 +233,64 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
         </div>
       </div>
 
+      {/* Streaks & Achievements */}
+      <div className="px-4 space-y-6">
+        {/* Streak Counters */}
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Flame size={16} className="text-luxe-orange" />
+            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Streaks</h2>
+          </div>
+        </div>
+        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+          {[
+            { label: 'Walks', value: streaks.walks, icon: '🚶', color: 'from-emerald-500/20 to-emerald-500/5' },
+            { label: 'Feeding', value: streaks.feeding, icon: '🍽️', color: 'from-luxe-orange/20 to-luxe-orange/5' },
+            { label: 'Hydration', value: streaks.hydration, icon: '💧', color: 'from-blue-500/20 to-blue-500/5' },
+          ].map(s => (
+            <div key={s.label} className={`flex-shrink-0 card-pearl p-5 min-w-[120px] text-center relative overflow-hidden group`}>
+              <div className={`absolute inset-0 bg-gradient-to-b ${s.color} opacity-50`}></div>
+              <div className="relative z-10">
+                <span className="text-2xl">{s.icon}</span>
+                <p className={`text-3xl font-bold mt-2 tracking-tight ${s.value > 0 ? 'text-luxe-deep' : 'text-luxe-deep/20'}`}>
+                  {s.value}<span className="text-sm font-medium opacity-40 ml-0.5">d</span>
+                </p>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/30">{s.label}</span>
+              </div>
+              {s.value >= 3 && (
+                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-luxe-orange animate-pulse shadow-[0_0_8px_rgba(255,140,0,0.6)]"></div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Achievement Badges */}
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Award size={16} className="text-luxe-gold" />
+            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Badges</h2>
+          </div>
+          <span className="text-[10px] font-bold text-luxe-deep/20">{badges.filter(b => b.condition).length}/{badges.length}</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+          {badges.map(badge => (
+            <div
+              key={badge.name}
+              className={`flex-shrink-0 card-pearl p-4 min-w-[100px] text-center transition-all duration-500 ${badge.condition
+                  ? 'badge-shine border-luxe-gold/20'
+                  : 'opacity-30 grayscale'
+                }`}
+            >
+              <span className="text-3xl block">{badge.icon}</span>
+              <p className="text-[9px] font-black uppercase tracking-widest text-luxe-deep/60 mt-2 leading-tight">{badge.name}</p>
+              {badge.condition && (
+                <p className="text-[8px] text-luxe-gold mt-1 font-bold">Unlocked ✓</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* 2. Biometric Bento Grid - Lighter Luxury */}
       <div className="px-2 space-y-4">
         <div className="flex items-center justify-between px-6">
@@ -247,7 +378,53 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
         </div>
       </div>
 
+      {/* AI Insights Card */}
+      {events.length >= 5 && (
+        <div className="px-4">
+          <div className="card-pearl p-8 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-[1.5rem] bg-purple-500/10 flex items-center justify-center text-purple-500">
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-luxe-deep">Smart Insights</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">AI Pattern Analysis</p>
+                </div>
+              </div>
+              <button
+                onClick={fetchInsights}
+                disabled={insightsLoading}
+                className={`p-3 rounded-2xl transition-all active:scale-90 ${insightsLoading
+                    ? 'text-luxe-deep/10 animate-spin'
+                    : 'text-luxe-deep/30 hover:text-purple-500 hover:bg-purple-500/10'
+                  }`}
+              >
+                <RefreshCw size={18} />
+              </button>
+            </div>
 
+            {insightsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-5 bg-luxe-base rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }}></div>
+                ))}
+              </div>
+            ) : insights.length > 0 ? (
+              <div className="space-y-4">
+                {insights.map((insight, i) => (
+                  <div key={i} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+                    <div className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0 shadow-[0_0_6px_rgba(168,85,247,0.4)]"></div>
+                    <p className="text-sm text-luxe-deep/70 font-medium leading-relaxed">{insight}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-luxe-deep/20 italic">Tap refresh to generate insights from your journal data.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 4. Journal Feed - Pearlescent Timeline */}
       <div className="px-4 space-y-8">

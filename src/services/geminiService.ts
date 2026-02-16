@@ -95,7 +95,7 @@ export async function getAvatarResponse(eventDescription: string, dogProfile: an
 export async function generateDogAvatar(breed: string, lifeStage: string): Promise<string | null> {
   const ai = getAI();
   const prompt = `A cinematic, high-fashion studio portrait of a ${breed} ${lifeStage}. Professional lighting, soft bokeh background, high detail fur texture, 8k resolution, elegant and soulful expression.`;
-  
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -118,5 +118,52 @@ export async function generateDogAvatar(breed: string, lifeStage: string): Promi
   } catch (err) {
     console.error("Avatar generation failed", err);
     return null;
+  }
+}
+
+/**
+ * Analyzes recent events and returns AI-generated behavioral insights.
+ */
+export async function generateInsights(
+  events: Array<{ type: string; rawText: string; timestamp: number; metadata?: any }>,
+  dogProfile: { name: string; breed: string; lifeStage: string }
+): Promise<string[]> {
+  if (events.length < 3) return [];
+
+  const ai = getAI();
+  const recentEvents = events.slice(0, 50).map(e => ({
+    type: e.type,
+    text: e.rawText,
+    time: new Date(e.timestamp).toLocaleString(),
+  }));
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze these recent care events for ${dogProfile.name} (${dogProfile.breed}, ${dogProfile.lifeStage}) and provide behavioral insights:\n\n${JSON.stringify(recentEvents, null, 2)}`,
+    config: {
+      systemInstruction: `You are a dog behavior analyst. Given a list of timestamped care events, identify 3-4 short, actionable patterns or insights.
+      Focus on: timing patterns (e.g., "walks usually happen at X"), frequency changes, correlations between events (e.g., water intake → potty timing), and any areas needing attention.
+      Each insight should be 1 sentence, specific, and useful. Use the dog's name.
+      Do NOT be generic — base every insight on the actual data provided.`,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          insights: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        },
+        required: ["insights"]
+      }
+    }
+  });
+
+  try {
+    const parsed = JSON.parse(response.text.trim());
+    return parsed.insights || [];
+  } catch (e) {
+    console.error("Failed to parse insights", e);
+    return [];
   }
 }

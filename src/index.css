@@ -156,4 +156,33 @@
   .animate-event-shift {
     animation: event-shift 0.3s ease-out;
   }
+
+  .badge-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .badge-shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg,
+        transparent 40%,
+        rgba(212, 175, 55, 0.15) 45%,
+        rgba(212, 175, 55, 0.25) 50%,
+        rgba(212, 175, 55, 0.15) 55%,
+        transparent 60%);
+    background-size: 200% 100%;
+    animation: badge-sweep 3s infinite ease-in-out;
+  }
+}
+
+@keyframes badge-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
