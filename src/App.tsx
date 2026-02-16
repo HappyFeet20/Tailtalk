@@ -3,7 +3,7 @@ import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import BigMic from './components/BigMic';
 import { Auth } from './components/Auth';
-import { Settings, LogOut, ChevronLeft, MapPin, Heart, X, User, Users, UserPlus, Trash2, Copy, CheckCircle, Wifi, WifiOff, Cloud } from 'lucide-react';
+import { Settings, LogOut, ChevronLeft, MapPin, Heart, X, User, Users, UserPlus, Trash2, Copy, CheckCircle, Wifi, WifiOff, Cloud, Mic, Send, MessageSquare } from 'lucide-react';
 import { DogProvider, useDog } from './context/DogContext';
 import { useVoice } from './hooks/useVoice';
 
@@ -23,6 +23,8 @@ const AppContent: React.FC = () => {
   const [settingsLinkCopied, setSettingsLinkCopied] = useState(false);
   const [settingsNewMember, setSettingsNewMember] = useState('');
   const [joinName, setJoinName] = useState('');
+  const [showMic, setShowMic] = useState(false);
+  const [textInput, setTextInput] = useState('');
 
   // STATE 1: Loading pack data from Supabase
   if (joiningPack) {
@@ -280,10 +282,66 @@ const AppContent: React.FC = () => {
           />
         </main>
 
-        {/* Floating BigMic Controller */}
-        <div className="absolute bottom-8 left-0 right-0 z-50 px-6 pointer-events-none">
-          <div className="max-w-md mx-auto flex justify-center pointer-events-auto">
-            <BigMic onTranscript={handleVoiceInput} isProcessing={isProcessing} />
+        {/* Input Bar — text-first, mic optional */}
+        <div className="absolute bottom-6 left-0 right-0 z-50 px-4">
+          <div className="max-w-md mx-auto">
+            {showMic ? (
+              <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+                <BigMic
+                  onTranscript={(t) => {
+                    handleVoiceInput(t);
+                    setShowMic(false);
+                  }}
+                  isProcessing={isProcessing}
+                />
+                <button
+                  onClick={() => setShowMic(false)}
+                  className="flex items-center gap-2 px-6 py-3 glass rounded-[2rem] text-luxe-deep/50 hover:text-luxe-deep transition-all active:scale-95"
+                >
+                  <MessageSquare size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Switch to Text</span>
+                </button>
+              </div>
+            ) : (
+              <div className="glass rounded-[2.5rem] flex items-center gap-2 px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-luxe-border/50 animate-in fade-in zoom-in-95 duration-300">
+                <input
+                  type="text"
+                  placeholder="Tell me about your dog's day..."
+                  className="flex-1 bg-transparent px-4 py-3 text-sm font-medium outline-none placeholder:text-luxe-deep/20 text-luxe-deep"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && textInput.trim()) {
+                      handleVoiceInput(textInput.trim());
+                      setTextInput('');
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => setShowMic(true)}
+                  disabled={isProcessing}
+                  className="p-3 rounded-2xl text-luxe-deep/30 hover:text-luxe-orange hover:bg-luxe-orange/10 transition-all active:scale-90 disabled:opacity-30"
+                  title="Switch to voice input"
+                >
+                  <Mic size={20} />
+                </button>
+                <button
+                  onClick={() => {
+                    if (textInput.trim()) {
+                      handleVoiceInput(textInput.trim());
+                      setTextInput('');
+                    }
+                  }}
+                  disabled={!textInput.trim() || isProcessing}
+                  className={`p-3 rounded-2xl transition-all active:scale-90 ${textInput.trim()
+                      ? 'bg-luxe-orange text-white shadow-lg shadow-luxe-orange/30 hover:scale-105'
+                      : 'text-luxe-deep/15'
+                    } disabled:opacity-30`}
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
