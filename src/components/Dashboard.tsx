@@ -206,9 +206,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     }
   };
 
-  const filteredEvents = filterType === 'all'
+  const filteredEvents = (filterType === 'all'
     ? events
-    : events.filter(e => e.type === filterType);
+    : events.filter(e => e.type === filterType)
+  ).sort((a, b) => b.timestamp - a.timestamp);
 
   const filterOptions: { label: string; value: EventType | 'all' }[] = [
     { label: 'All', value: 'all' },
