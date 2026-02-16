@@ -560,57 +560,107 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
       )}
 
       {/* 6. Streaks & Achievements */}
-      <div className="px-4 space-y-6">
-        {/* Streak Counters */}
-        <div className="flex items-center justify-between px-4">
+      <div className="px-4 space-y-8">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-luxe-orange/20 to-luxe-gold/20 flex items-center justify-center">
+              <Flame size={18} className="text-luxe-orange" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-luxe-deep">Streaks & Rewards</h2>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/20">Consistency Tracker</p>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <Flame size={16} className="text-luxe-orange" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Streaks</h2>
+            <Award size={16} className="text-luxe-gold" />
+            <span className="text-[10px] font-bold text-luxe-gold/60">{badges.filter(b => b.condition).length}/{badges.length}</span>
           </div>
         </div>
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+
+        {/* Streak Cards */}
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Walks', value: streaks.walks, icon: '🚶', color: 'from-emerald-500/20 to-emerald-500/5' },
-            { label: 'Feeding', value: streaks.feeding, icon: '🍽️', color: 'from-luxe-orange/20 to-luxe-orange/5' },
-            { label: 'Hydration', value: streaks.hydration, icon: '💧', color: 'from-blue-500/20 to-blue-500/5' },
+            { label: 'Walks', value: streaks.walks, icon: '🚶', gradient: 'from-emerald-500/15 via-emerald-500/5 to-transparent', accent: 'emerald', ring: 'ring-emerald-500/20' },
+            { label: 'Feeding', value: streaks.feeding, icon: '🍽️', gradient: 'from-luxe-orange/15 via-luxe-orange/5 to-transparent', accent: 'orange', ring: 'ring-luxe-orange/20' },
+            { label: 'Hydration', value: streaks.hydration, icon: '💧', gradient: 'from-blue-500/15 via-blue-500/5 to-transparent', accent: 'blue', ring: 'ring-blue-500/20' },
           ].map(s => (
-            <div key={s.label} className={`flex-shrink-0 card-pearl p-5 min-w-[120px] text-center relative overflow-hidden group`}>
-              <div className={`absolute inset-0 bg-gradient-to-b ${s.color} opacity-50`}></div>
-              <div className="relative z-10">
-                <span className="text-2xl">{s.icon}</span>
-                <p className={`text-3xl font-bold mt-2 tracking-tight ${s.value > 0 ? 'text-luxe-deep' : 'text-luxe-deep/20'}`}>
-                  {s.value}<span className="text-sm font-medium opacity-40 ml-0.5">d</span>
-                </p>
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/30">{s.label}</span>
-              </div>
+            <div key={s.label} className={`card-pearl p-5 text-center relative overflow-hidden group transition-all duration-500 hover:scale-[1.03] ${s.value >= 3 ? s.ring + ' ring-2' : ''}`}>
+              {/* Background gradient */}
+              <div className={`absolute inset-0 bg-gradient-to-b ${s.gradient} opacity-60`}></div>
+
+              {/* Fire particles for streaks >= 3 */}
               {s.value >= 3 && (
-                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-luxe-orange animate-pulse shadow-[0_0_8px_rgba(255,140,0,0.6)]"></div>
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-luxe-orange animate-float opacity-60"></div>
+                  <div className="absolute top-5 right-5 w-1 h-1 rounded-full bg-luxe-gold animate-float opacity-40" style={{ animationDelay: '1s' }}></div>
+                </div>
+              )}
+
+              <div className="relative z-10">
+                {/* Icon */}
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-luxe-base/50 flex items-center justify-center mb-3 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                  <span className="text-[28px] leading-none">{s.icon}</span>
+                </div>
+
+                {/* Count */}
+                <p className={`text-4xl font-serif italic font-bold tracking-tighter transition-all duration-700 ${s.value > 0 ? 'text-luxe-deep' : 'text-luxe-deep/15'}`}>
+                  {s.value}
+                </p>
+                <span className="text-[8px] font-black uppercase tracking-[0.4em] text-luxe-deep/25 block mt-0.5">
+                  {s.value === 1 ? 'Day' : 'Days'}
+                </span>
+
+                {/* Label */}
+                <div className="mt-3 pt-3 border-t border-luxe-border">
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/40">{s.label}</span>
+                </div>
+              </div>
+
+              {/* Active streak indicator */}
+              {s.value >= 7 && (
+                <div className="absolute -top-1 -right-1 w-7 h-7 bg-gradient-to-br from-luxe-gold to-luxe-orange rounded-xl flex items-center justify-center shadow-lg shadow-luxe-orange/30 rotate-12">
+                  <span className="text-[10px]">🔥</span>
+                </div>
               )}
             </div>
           ))}
         </div>
 
         {/* Achievement Badges */}
-        <div className="flex items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Award size={16} className="text-luxe-gold" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Badges</h2>
-          </div>
-          <span className="text-[10px] font-bold text-luxe-deep/20">{badges.filter(b => b.condition).length}/{badges.length}</span>
-        </div>
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+        <div className="grid grid-cols-5 gap-2">
           {badges.map(badge => (
             <div
               key={badge.name}
-              className={`flex-shrink-0 card-pearl p-4 min-w-[100px] text-center transition-all duration-500 ${badge.condition
-                ? 'badge-shine border-luxe-gold/20'
-                : 'opacity-30 grayscale'
+              className={`relative flex flex-col items-center p-3 rounded-[1.5rem] transition-all duration-700 group ${badge.condition
+                  ? 'badge-shine bg-luxe-pearl border border-luxe-gold/30 shadow-[0_4px_20px_rgba(212,175,55,0.15)] hover:scale-110 hover:shadow-[0_8px_30px_rgba(212,175,55,0.25)]'
+                  : 'bg-luxe-base/50 border border-luxe-border/50 opacity-40'
                 }`}
             >
-              <span className="text-3xl block">{badge.icon}</span>
-              <p className="text-[9px] font-black uppercase tracking-widest text-luxe-deep/60 mt-2 leading-tight">{badge.name}</p>
+              {/* Emoji Icon - consistent 40px */}
+              <div className={`w-10 h-10 flex items-center justify-center rounded-xl mb-1.5 transition-transform duration-500 ${badge.condition ? 'group-hover:scale-125 group-hover:rotate-12' : ''
+                }`}>
+                <span className="text-[28px] leading-none">{badge.icon}</span>
+              </div>
+
+              {/* Name */}
+              <p className={`text-[7px] font-black uppercase tracking-wider leading-tight text-center ${badge.condition ? 'text-luxe-deep/70' : 'text-luxe-deep/20'
+                }`}>
+                {badge.name}
+              </p>
+
+              {/* Unlocked glow dot */}
               {badge.condition && (
-                <p className="text-[8px] text-luxe-gold mt-1 font-bold">Unlocked ✓</p>
+                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-luxe-gold rounded-full shadow-[0_0_10px_rgba(212,175,55,0.6)] flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                </div>
+              )}
+
+              {/* Lock overlay for locked badges */}
+              {!badge.condition && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-[1.5rem]">
+                  <span className="text-[12px] opacity-30">🔒</span>
+                </div>
               )}
             </div>
           ))}
