@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CircularRing from './CircularRing';
 import { DogEvent, DogStats, EventType, DogProfile } from '../types';
 import { COLORS } from '../constants';
-import { Utensils, Droplets, Footprints, AlertCircle, History, Filter, Clock, TrendingUp, Calendar, Zap, Crown, Trash2, Plus, X, Heart, Stethoscope, Sparkles, RefreshCw, Flame, Award } from 'lucide-react';
+import { Utensils, Droplets, Footprints, AlertCircle, History, Filter, Clock, TrendingUp, Calendar, Zap, Crown, Trash2, Plus, X, Heart, Stethoscope, Sparkles, RefreshCw, Flame, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDog } from '../context/DogContext';
 import { generateInsights } from '../services/geminiService';
 
@@ -206,10 +206,48 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     }
   };
 
+  // --- Date-based journal filtering ---
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+
+  const isToday = selectedDate === todayStr;
+
+  const isSameDay = (ts: number, dateStr: string) => {
+    const d = new Date(ts);
+    return d.toISOString().slice(0, 10) === dateStr;
+  };
+
+  // Get all unique dates that have events (sorted newest first)
+  const availableDates = useMemo(() => {
+    const dateSet = new Set(events.map(e => new Date(e.timestamp).toISOString().slice(0, 10)));
+    return Array.from(dateSet).sort((a: string, b: string) => b.localeCompare(a));
+  }, [events]);
+
+  const navigateDay = (direction: 'prev' | 'next') => {
+    const idx = availableDates.indexOf(selectedDate);
+    if (direction === 'prev') {
+      // Go to older day (higher index since sorted newest first)
+      if (idx < availableDates.length - 1) setSelectedDate(availableDates[idx + 1]);
+    } else {
+      // Go to newer day (lower index)
+      if (idx > 0) setSelectedDate(availableDates[idx - 1]);
+    }
+  };
+
   const filteredEvents = (filterType === 'all'
     ? events
     : events.filter(e => e.type === filterType)
-  ).sort((a, b) => b.timestamp - a.timestamp);
+  ).filter(e => isSameDay(e.timestamp, selectedDate))
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  const formatDateLabel = (dateStr: string) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    if (dateStr === todayStr) return 'Today';
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (dateStr === yesterday.toISOString().slice(0, 10)) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
 
   const filterOptions: { label: string; value: EventType | 'all' }[] = [
     { label: 'All', value: 'all' },
@@ -297,7 +335,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
             </div>
             <div>
               <h2 className="text-lg font-bold text-luxe-deep">Memory Journal</h2>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/20">{filteredEvents.length} {filteredEvents.length === 1 ? 'Entry' : 'Entries'}</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/20">{filteredEvents.length} {filteredEvents.length === 1 ? 'Entry' : 'Entries'} · {formatDateLabel(selectedDate)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -314,6 +352,45 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
               <Plus size={18} />
             </button>
           </div>
+        </div>
+
+        {/* Day Navigator */}
+        <div className="flex items-center justify-between bg-luxe-pearl border border-luxe-border rounded-2xl px-2 py-1.5">
+          <button
+            onClick={() => navigateDay('prev')}
+            disabled={availableDates.indexOf(selectedDate) >= availableDates.length - 1}
+            className="p-2 rounded-xl text-luxe-deep/30 hover:text-luxe-deep hover:bg-white disabled:opacity-10 transition-all"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedDate(todayStr)}
+              className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all px-4 py-2 rounded-xl ${isToday
+                ? 'bg-luxe-orange text-white shadow-md'
+                : 'text-luxe-deep/40 hover:text-luxe-orange hover:bg-luxe-orange/5'
+                }`}
+            >
+              {formatDateLabel(selectedDate)}
+            </button>
+            {!isToday && (
+              <button
+                onClick={() => setSelectedDate(todayStr)}
+                className="text-[8px] font-black uppercase tracking-widest text-luxe-orange/50 hover:text-luxe-orange transition-colors"
+              >
+                Today
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => navigateDay('next')}
+            disabled={isToday || availableDates.indexOf(selectedDate) <= 0}
+            className="p-2 rounded-xl text-luxe-deep/30 hover:text-luxe-deep hover:bg-white disabled:opacity-10 transition-all"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
 
         {/* Add Event Form */}
@@ -409,7 +486,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
                 <History size={28} className="text-luxe-deep/10" />
               </div>
               <p className="text-sm text-luxe-deep/20 italic font-medium">
-                No memories yet. Tap + to start logging.
+                {isToday ? 'No memories yet today. Tap + to start logging.' : `No entries on ${formatDateLabel(selectedDate)}.`}
               </p>
             </div>
           ) : (
