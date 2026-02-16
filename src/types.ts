@@ -16,6 +16,13 @@ export interface DogProfile {
   avatarUrl?: string;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  role: 'admin' | 'member';
+  emoji?: string;
+}
+
 export interface DogEvent {
   id: string;
   type: EventType;

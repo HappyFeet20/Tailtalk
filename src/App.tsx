@@ -3,12 +3,12 @@ import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import BigMic from './components/BigMic';
 import { Auth } from './components/Auth';
-import { Settings, LogOut, ChevronLeft, MapPin, Heart, X, User } from 'lucide-react';
+import { Settings, LogOut, ChevronLeft, MapPin, Heart, X, User, Users, UserPlus, Trash2, Copy, CheckCircle } from 'lucide-react';
 import { DogProvider, useDog } from './context/DogContext';
 import { useVoice } from './hooks/useVoice';
 
 const AppContent: React.FC = () => {
-  const { dog, stats, events, setDog, resetDog } = useDog();
+  const { dog, stats, events, setDog, resetDog, addUser, removeUser, users, isAdmin } = useDog();
   const {
     isProcessing,
     avatarMsg,
@@ -20,9 +20,11 @@ const AppContent: React.FC = () => {
     discardPendingEvent
   } = useVoice();
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsLinkCopied, setSettingsLinkCopied] = useState(false);
+  const [settingsNewMember, setSettingsNewMember] = useState('');
 
   if (!dog) {
-    return <Onboarding onComplete={setDog} />;
+    return <Onboarding onComplete={setDog} onAddUser={addUser} />;
   }
 
   return (
@@ -64,10 +66,10 @@ const AppContent: React.FC = () => {
         {showSettings && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
             <div className="absolute inset-0 bg-luxe-base/80 backdrop-blur-md" onClick={() => setShowSettings(false)}></div>
-            <div className="relative w-full max-w-sm card-pearl p-8 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 bg-luxe-pearl border border-luxe-border">
+            <div className="relative w-full max-w-sm card-pearl p-8 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 bg-luxe-pearl border border-luxe-border max-h-[80vh] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               <button
                 onClick={() => setShowSettings(false)}
-                className="absolute top-4 right-4 p-2 text-luxe-deep/40 hover:text-luxe-deep transition-colors"
+                className="absolute top-4 right-4 p-2 text-luxe-deep/40 hover:text-luxe-deep transition-colors z-10"
               >
                 <X size={20} />
               </button>
@@ -80,6 +82,75 @@ const AppContent: React.FC = () => {
               </div>
 
               <div className="space-y-4">
+                {/* Pack Members Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <Users size={14} className="text-luxe-gold" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-luxe-deep/40">Pack Members ({users.length})</span>
+                  </div>
+
+                  {users.map((user) => (
+                    <div key={user.id} className="flex items-center gap-3 px-4 py-3 bg-luxe-base rounded-2xl">
+                      <span className="text-lg">{user.emoji || '🐾'}</span>
+                      <div className="flex-1">
+                        <span className="text-sm font-bold text-luxe-deep">{user.name}</span>
+                        {user.role === 'admin' && (
+                          <span className="ml-2 text-[8px] font-black uppercase tracking-widest text-luxe-gold bg-luxe-gold/10 px-2 py-0.5 rounded-full">Admin</span>
+                        )}
+                      </div>
+                      {isAdmin && user.role !== 'admin' && (
+                        <button
+                          onClick={() => removeUser(user.id)}
+                          className="p-1.5 text-luxe-deep/20 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Add member from settings (admin only) */}
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add member..."
+                        className="flex-1 bg-luxe-base rounded-xl px-4 py-3 text-xs font-bold outline-none placeholder:text-luxe-deep/20 text-luxe-deep border border-transparent focus:border-luxe-orange/20"
+                        value={settingsNewMember}
+                        onChange={(e) => setSettingsNewMember(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && settingsNewMember.trim()) {
+                            addUser(settingsNewMember.trim());
+                            setSettingsNewMember('');
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => { if (settingsNewMember.trim()) { addUser(settingsNewMember.trim()); setSettingsNewMember(''); } }}
+                        disabled={!settingsNewMember.trim()}
+                        className="px-4 py-3 bg-luxe-orange text-white rounded-xl text-[10px] font-black uppercase disabled:opacity-20 active:scale-95 transition-all"
+                      >
+                        <UserPlus size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-px bg-luxe-border"></div>
+
+                {/* Share Link */}
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    setSettingsLinkCopied(true);
+                    setTimeout(() => setSettingsLinkCopied(false), 2000);
+                  }}
+                  className={`w-full py-4 glass rounded-2xl flex items-center justify-center gap-3 transition-all ${settingsLinkCopied ? 'text-green-400' : 'text-luxe-deep/60 hover:text-luxe-deep'}`}
+                >
+                  {settingsLinkCopied ? <CheckCircle size={16} /> : <Copy size={16} />}
+                  <span className="font-bold text-xs uppercase tracking-widest">{settingsLinkCopied ? 'Link Copied!' : 'Share App Link'}</span>
+                </button>
+
                 {/* Reset Dog Button */}
                 <button
                   onClick={() => {
@@ -94,25 +165,13 @@ const AppContent: React.FC = () => {
                   <span className="font-bold text-xs uppercase tracking-widest">Reset App Data</span>
                 </button>
 
-                <div className="pt-6 border-t border-luxe-border text-center">
+                <div className="pt-4 border-t border-luxe-border text-center">
                   <Auth onAuthSuccess={() => setShowSettings(false)} />
-
-                  <div className="mt-6 pt-6 border-t border-luxe-border/50">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(window.location.href);
-                        alert("App link copied! Share it with your pack.");
-                      }}
-                      className="text-[10px] font-black uppercase tracking-widest text-luxe-gold/60 hover:text-luxe-gold transition-colors flex items-center justify-center gap-2 mx-auto"
-                    >
-                      <span>Invite via Link</span>
-                    </button>
-                  </div>
                 </div>
               </div>
 
               <p className="mt-6 text-center text-[10px] text-luxe-deep/20 uppercase tracking-widest">
-                TailTalk AI v1.0.2
+                TailTalk AI v1.1.0
               </p>
             </div>
           </div>

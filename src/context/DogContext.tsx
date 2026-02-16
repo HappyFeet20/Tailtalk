@@ -2,19 +2,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
-import { DogProfile, DogStats, DogEvent, EventType } from '../types';
+import { DogProfile, DogStats, DogEvent, EventType, UserProfile } from '../types';
 import { INITIAL_STATS } from '../constants';
 
 interface DogContextType {
     dog: DogProfile | null;
     stats: DogStats;
     events: DogEvent[];
+    users: UserProfile[];
+    currentUser: UserProfile | null;
     setDog: (profile: DogProfile | null) => void;
     setStats: React.Dispatch<React.SetStateAction<DogStats>>;
     setEvents: React.Dispatch<React.SetStateAction<DogEvent[]>>;
     addEvent: (event: Omit<DogEvent, 'id' | 'timestamp'>) => void;
     removeEvent: (id: string) => void;
     resetDog: () => void;
+    addUser: (name: string, emoji?: string) => UserProfile;
+    removeUser: (id: string) => void;
+    isAdmin: boolean;
     session: Session | null;
 }
 
@@ -31,9 +36,27 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     });
 
+    const [users, setUsers] = useState<UserProfile[]>(() => {
+        try {
+            const saved = localStorage.getItem('tailtalk_users');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+
     const [stats, setStats] = useState<DogStats>(INITIAL_STATS);
     const [events, setEvents] = useState<DogEvent[]>([]);
     const [session, setSession] = useState<Session | null>(null);
+
+    // The current user is always the first user (admin) in local mode
+    const currentUser = users.length > 0 ? users[0] : null;
+    const isAdmin = currentUser?.role === 'admin';
+
+    // Persist users to localStorage
+    useEffect(() => {
+        localStorage.setItem('tailtalk_users', JSON.stringify(users));
+    }, [users]);
 
     // Auth & Real-time Subscription (only if Supabase is configured)
     useEffect(() => {
@@ -95,6 +118,25 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setDogState(profile);
     };
 
+    const addUser = (name: string, emoji?: string): UserProfile => {
+        const isFirst = users.length === 0;
+        const newUser: UserProfile = {
+            id: self.crypto.randomUUID ? self.crypto.randomUUID() : Math.random().toString(36).substring(2),
+            name,
+            role: isFirst ? 'admin' : 'member',
+            emoji: emoji || (isFirst ? '👑' : '🐾'),
+        };
+        setUsers(prev => [...prev, newUser]);
+        return newUser;
+    };
+
+    const removeUser = (id: string) => {
+        // Can't remove admin
+        setUsers(prev => prev.filter(u => !(u.id === id && u.role === 'admin') && (u.id !== id || u.role === 'admin') ? u : null).filter(Boolean) as UserProfile[]);
+        // Simpler:
+        setUsers(prev => prev.filter(u => u.id !== id || u.role === 'admin'));
+    };
+
     const addEvent = async (eventData: Omit<DogEvent, 'id' | 'timestamp'>) => {
         const newEvent: DogEvent = {
             ...eventData,
@@ -129,6 +171,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const resetDog = () => {
         localStorage.removeItem('tailtalk_dog');
+        localStorage.removeItem('tailtalk_users');
         if (session && supabase) supabase.auth.signOut();
         window.location.reload();
     };
@@ -156,7 +199,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [dog?.lifeStage]);
 
     return (
-        <DogContext.Provider value={{ dog, stats, events, setDog, setStats, setEvents, addEvent, removeEvent, resetDog, session }}>
+        <DogContext.Provider value={{ dog, stats, events, users, currentUser, setDog, setStats, setEvents, addEvent, removeEvent, resetDog, addUser, removeUser, isAdmin, session }}>
             {children}
         </DogContext.Provider>
     );

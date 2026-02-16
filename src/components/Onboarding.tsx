@@ -1,14 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { DogProfile } from '../types';
-import { ChevronRight, Sparkles, Dog, Shield, Activity, Star, Share2, Copy, CheckCircle, UserPlus } from 'lucide-react';
+import { DogProfile, UserProfile } from '../types';
+import { ChevronRight, Sparkles, Dog, Shield, Activity, Star, Share2, Copy, CheckCircle, UserPlus, X, Crown, Users, Trash2 } from 'lucide-react';
 import { generateDogAvatar } from '../services/geminiService';
 import { COMMON_BREEDS } from '../constants';
 
 interface OnboardingProps {
   onComplete: (profile: DogProfile) => void;
+  onAddUser: (name: string, emoji?: string) => UserProfile;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+const AVATAR_EMOJIS = ['🐕', '🐶', '🦮', '🐩', '🐾', '💛', '🌟', '✨', '🎯', '🏠', '💜', '🧡'];
+
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onAddUser }) => {
   const [step, setStep] = useState(1);
   const [isFinishing, setIsFinishing] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -19,9 +22,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     sex: 'male'
   });
   const [pendingProfile, setPendingProfile] = useState<DogProfile | null>(null);
+
+  // Step 4 state — user profiles
+  const [adminName, setAdminName] = useState('');
+  const [adminCreated, setAdminCreated] = useState(false);
+  const [members, setMembers] = useState<{ name: string; emoji: string }[]>([]);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState('🐾');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteSent, setInviteSent] = useState(false);
 
   const filteredBreeds = useMemo(() => {
     if (!profile.breed.trim()) return [];
@@ -37,15 +46,42 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleFinalSelection = async (stage: 'puppy' | 'adult' | 'senior') => {
-    // Save the profile with chosen stage, then go to invite step
     const updatedProfile = { ...profile, lifeStage: stage };
     setProfile(updatedProfile);
     setPendingProfile(updatedProfile);
     setStep(4);
   };
 
+  const handleCreateAdmin = () => {
+    if (!adminName.trim()) return;
+    onAddUser(adminName.trim(), '👑');
+    setAdminCreated(true);
+  };
+
+  const handleAddMember = () => {
+    if (!newMemberName.trim()) return;
+    setMembers(prev => [...prev, { name: newMemberName.trim(), emoji: selectedEmoji }]);
+    setNewMemberName('');
+    setSelectedEmoji('🐾');
+    setShowEmojiPicker(false);
+  };
+
+  const handleRemoveMember = (index: number) => {
+    setMembers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
   const finishOnboarding = async () => {
     if (!pendingProfile) return;
+
+    // Create user profiles for all members
+    members.forEach(m => onAddUser(m.name, m.emoji));
+
     setIsFinishing(true);
     setStatusMsg(`Curating visual identity...`);
 
@@ -61,24 +97,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setTimeout(() => {
       onComplete(finalProfile);
     }, 3000);
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-  };
-
-  const handleSendInvite = () => {
-    if (!inviteEmail.trim()) return;
-    // Use mailto as a lightweight invite mechanism
-    const subject = encodeURIComponent(`Join me on TailTalk AI — Track ${profile.name}'s health!`);
-    const body = encodeURIComponent(
-      `Hey! I'm using TailTalk AI to track ${profile.name}'s health and wellness. Join me so we can share updates!\n\nOpen the app here: ${window.location.href}\n\nSign up with your email and we'll be synced!`
-    );
-    window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, '_blank');
-    setInviteSent(true);
-    setTimeout(() => setInviteSent(false), 3000);
   };
 
   if (isFinishing) {
@@ -115,8 +133,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-luxe-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-sm relative z-10 flex-1 flex flex-col">
-        {/* Step Indicator - Pearl Dots */}
-        <div className="flex items-center gap-4 mb-20">
+        {/* Step Indicator */}
+        <div className="flex items-center gap-4 mb-16">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -239,102 +257,170 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         )}
 
         {step === 4 && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700 flex-1">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 flex-1">
             <div className="space-y-4">
               <span className="text-[11px] font-black uppercase tracking-[0.5em] text-luxe-orange">Pack</span>
-              <h1 className="font-serif text-5xl italic font-bold leading-tight text-luxe-deep">Invite your <br /><span className="text-luxe-orange">pack.</span></h1>
-              <p className="text-base opacity-40 font-medium italic leading-relaxed">
-                Share {profile.name}'s profile with family members or co-owners so everyone stays in sync.
+              <h1 className="font-serif text-4xl italic font-bold leading-tight text-luxe-deep">Build your <span className="text-luxe-orange">pack.</span></h1>
+              <p className="text-sm opacity-40 font-medium italic leading-relaxed">
+                Create your profile first, then add family members who help care for {profile.name}.
               </p>
             </div>
 
-            {/* Share Link */}
-            <div className="card-pearl p-8 space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-[1.5rem] bg-luxe-orange/10 flex items-center justify-center text-luxe-orange">
-                  <Share2 size={22} />
+            {/* Admin Profile Creation */}
+            {!adminCreated ? (
+              <div className="card-pearl p-8 space-y-6 animate-in fade-in duration-500">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-[1.5rem] bg-luxe-gold/10 flex items-center justify-center text-2xl">
+                    👑
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-luxe-deep">Your Profile</h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Pack Leader (Admin)</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-luxe-deep">Share App Link</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Anyone with this link can join</p>
-                </div>
-              </div>
 
-              <button
-                onClick={handleCopyLink}
-                className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${linkCopied
-                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
-                  : 'glass text-luxe-deep hover:bg-luxe-pearl active:scale-[0.98]'
-                  }`}
-              >
-                {linkCopied ? (
-                  <>
-                    <CheckCircle size={18} />
-                    <span>Link Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} />
-                    <span>Copy App Link</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Email Invite */}
-            <div className="card-pearl p-8 space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-[1.5rem] bg-luxe-gold/10 flex items-center justify-center text-luxe-gold">
-                  <UserPlus size={22} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-luxe-deep">Invite by Email</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Send a personal invitation</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
                 <input
-                  type="email"
-                  placeholder="partner@email.com"
-                  className="flex-1 bg-luxe-base border-2 border-transparent focus:border-luxe-gold/30 rounded-2xl px-5 py-4 text-sm font-medium outline-none transition-all placeholder:text-luxe-deep/20 text-luxe-deep"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendInvite()}
+                  autoFocus
+                  type="text"
+                  placeholder="Your name..."
+                  className="w-full bg-luxe-base border-2 border-transparent focus:border-luxe-gold/30 rounded-2xl px-5 py-4 text-base font-bold outline-none transition-all placeholder:text-luxe-deep/20 text-luxe-deep"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateAdmin()}
                 />
+
                 <button
-                  onClick={handleSendInvite}
-                  disabled={!inviteEmail.trim()}
-                  className="px-6 py-4 bg-luxe-gold text-luxe-base rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-20 disabled:grayscale active:scale-95 transition-all"
+                  onClick={handleCreateAdmin}
+                  disabled={!adminName.trim()}
+                  className="w-full py-4 bg-luxe-gold text-luxe-base rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg disabled:opacity-20 active:scale-[0.98] transition-all"
                 >
-                  Send
+                  Create My Profile
                 </button>
               </div>
-
-              {inviteSent && (
-                <div className="flex items-center gap-2 text-green-400 animate-in fade-in duration-500">
-                  <CheckCircle size={14} />
-                  <span className="text-xs font-bold">Opening email client...</span>
+            ) : (
+              <>
+                {/* Admin Badge */}
+                <div className="card-pearl p-5 flex items-center gap-4 animate-in fade-in duration-500">
+                  <div className="w-12 h-12 rounded-full bg-luxe-gold/10 flex items-center justify-center text-2xl">
+                    👑
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-luxe-deep">{adminName}</h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-luxe-gold">Pack Leader</p>
+                  </div>
+                  <span className="px-3 py-1.5 bg-luxe-gold/10 text-luxe-gold rounded-full text-[9px] font-black uppercase tracking-widest">Admin</span>
                 </div>
-              )}
-            </div>
 
-            {/* Continue Button */}
-            <div className="pt-4">
-              <button
-                onClick={finishOnboarding}
-                className="w-full py-8 btn-luxe rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs text-white flex items-center justify-center gap-4 overflow-hidden"
-              >
-                <span className="relative z-10">Continue to Dashboard</span>
-                <ChevronRight size={20} className="relative z-10" />
-              </button>
-              <button
-                onClick={finishOnboarding}
-                className="w-full mt-4 py-4 text-luxe-deep/30 text-[10px] font-black uppercase tracking-[0.4em] hover:text-luxe-deep/60 transition-colors"
-              >
-                Skip — I'll invite later
-              </button>
-            </div>
+                {/* Members List */}
+                {members.length > 0 && (
+                  <div className="space-y-3 animate-in fade-in duration-300">
+                    {members.map((member, index) => (
+                      <div key={index} className="card-pearl p-5 flex items-center gap-4 animate-in slide-in-from-left-4 duration-500">
+                        <div className="w-12 h-12 rounded-full bg-luxe-base flex items-center justify-center text-2xl">
+                          {member.emoji}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-base font-bold text-luxe-deep">{member.name}</h3>
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20">Member</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveMember(index)}
+                          className="p-2 text-luxe-deep/20 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Member Form */}
+                <div className="card-pearl p-6 space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-[1.2rem] bg-luxe-orange/10 flex items-center justify-center text-luxe-orange">
+                      <UserPlus size={18} />
+                    </div>
+                    <h3 className="text-sm font-bold text-luxe-deep">Add Family Member</h3>
+                  </div>
+
+                  <div className="flex gap-3 items-center">
+                    <button
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="w-12 h-12 flex-shrink-0 rounded-xl bg-luxe-base flex items-center justify-center text-xl hover:scale-110 transition-transform"
+                    >
+                      {selectedEmoji}
+                    </button>
+                    <input
+                      type="text"
+                      placeholder="Name..."
+                      className="flex-1 bg-luxe-base border-2 border-transparent focus:border-luxe-orange/30 rounded-xl px-4 py-3 text-sm font-bold outline-none transition-all placeholder:text-luxe-deep/20 text-luxe-deep"
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
+                    />
+                    <button
+                      onClick={handleAddMember}
+                      disabled={!newMemberName.trim()}
+                      className="px-5 py-3 bg-luxe-orange text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-20 active:scale-95 transition-all"
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {showEmojiPicker && (
+                    <div className="flex flex-wrap gap-2 p-3 glass rounded-2xl animate-in fade-in zoom-in-95 duration-300">
+                      {AVATAR_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => { setSelectedEmoji(emoji); setShowEmojiPicker(false); }}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg hover:scale-125 transition-transform ${selectedEmoji === emoji ? 'bg-luxe-orange/20 scale-110' : 'hover:bg-luxe-base'}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pack Summary */}
+                <div className="flex items-center justify-center gap-3 py-2 opacity-30">
+                  <Users size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">{1 + members.length} {members.length === 0 ? 'member' : 'members'} in pack</span>
+                </div>
+
+                {/* Share Link */}
+                <button
+                  onClick={handleCopyLink}
+                  className={`w-full py-4 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${linkCopied
+                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                    : 'glass text-luxe-deep hover:bg-luxe-pearl active:scale-[0.98]'
+                    }`}
+                >
+                  {linkCopied ? (
+                    <><CheckCircle size={18} /><span>Link Copied!</span></>
+                  ) : (
+                    <><Copy size={18} /><span>Copy App Link to Share</span></>
+                  )}
+                </button>
+
+                {/* Continue */}
+                <div className="pt-2 space-y-3">
+                  <button
+                    onClick={finishOnboarding}
+                    className="w-full py-7 btn-luxe rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs text-white flex items-center justify-center gap-4"
+                  >
+                    <span className="relative z-10">Continue to Dashboard</span>
+                    <ChevronRight size={20} className="relative z-10" />
+                  </button>
+                  <button
+                    onClick={finishOnboarding}
+                    className="w-full py-3 text-luxe-deep/30 text-[10px] font-black uppercase tracking-[0.4em] hover:text-luxe-deep/60 transition-colors"
+                  >
+                    Skip — I'll add members later
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -353,7 +439,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         )}
       </div>
 
-      <div className="relative z-10 text-center space-y-3">
+      <div className="relative z-10 text-center space-y-3 mt-10">
         <div className="flex items-center justify-center gap-3 text-luxe-orange transition-opacity duration-1000 opacity-60">
           <div className="w-12 h-px bg-luxe-orange/30"></div>
           <Dog size={20} />
