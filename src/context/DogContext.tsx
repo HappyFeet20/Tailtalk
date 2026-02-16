@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { DogProfile, DogStats, DogEvent, EventType, UserProfile } from '../types';
@@ -7,7 +7,7 @@ import { INITIAL_STATS } from '../constants';
 
 // Generate a 6-character pack code
 const generatePackId = (): string => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 to avoid confusion
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -39,6 +39,8 @@ interface DogContextType {
     session: Session | null;
     packId: string | null;
     syncStatus: 'local' | 'syncing' | 'synced' | 'error';
+    joiningPack: boolean;      // true when we're fetching a pack from URL
+    joinPackError: string | null;
 }
 
 const DogContext = createContext<DogContextType | undefined>(undefined);
@@ -69,11 +71,12 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [events, setEvents] = useState<DogEvent[]>([]);
     const [session, setSession] = useState<Session | null>(null);
     const [syncStatus, setSyncStatus] = useState<'local' | 'syncing' | 'synced' | 'error'>(supabase ? 'syncing' : 'local');
+    const [joiningPack, setJoiningPack] = useState(false);
+    const [joinPackError, setJoinPackError] = useState<string | null>(null);
 
     // Resolve pack ID: URL param > saved in dog profile > null
     const packId = urlPackId || dog?.packId || null;
 
-    // The current user is the first user (admin) in local mode
     const currentUser = users.length > 0 ? users[0] : null;
     const isAdmin = currentUser?.role === 'admin';
 
@@ -82,16 +85,53 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.setItem('tailtalk_users', JSON.stringify(users));
     }, [users]);
 
-    // If joining via URL pack code, save it to the dog profile
+    // AUTO-JOIN: If we have a pack code from URL but no dog profile, fetch the pack from Supabase
     useEffect(() => {
-        if (urlPackId && dog && dog.packId !== urlPackId) {
-            const updatedDog = { ...dog, packId: urlPackId };
-            setDogState(updatedDog);
-            localStorage.setItem('tailtalk_dog', JSON.stringify(updatedDog));
-        }
+        if (!urlPackId || dog || !supabase) return;
+
+        const fetchPack = async () => {
+            setJoiningPack(true);
+            setJoinPackError(null);
+
+            try {
+                const { data, error } = await supabase
+                    .from('packs')
+                    .select('*')
+                    .eq('pack_id', urlPackId)
+                    .single();
+
+                if (error || !data) {
+                    console.error('Pack not found:', error);
+                    setJoinPackError('Pack not found. It may have been deleted or the code is wrong.');
+                    setJoiningPack(false);
+                    return;
+                }
+
+                // Reconstruct dog profile from pack data
+                const joinedDog: DogProfile = {
+                    name: data.dog_name,
+                    breed: data.dog_breed,
+                    lifeStage: data.life_stage,
+                    sex: data.dog_sex || undefined,
+                    avatarUrl: data.avatar_url || undefined,
+                    packId: urlPackId,
+                };
+
+                // Set dog profile locally (user will still need to add their name)
+                localStorage.setItem('tailtalk_dog', JSON.stringify(joinedDog));
+                setDogState(joinedDog);
+                setJoiningPack(false);
+            } catch (e) {
+                console.error('Error fetching pack:', e);
+                setJoinPackError('Could not connect to server.');
+                setJoiningPack(false);
+            }
+        };
+
+        fetchPack();
     }, [urlPackId, dog]);
 
-    // Auth (optional - only if Supabase configured)
+    // Auth (optional)
     useEffect(() => {
         if (!supabase) return;
 
@@ -140,7 +180,6 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         fetchEvents();
 
-        // Real-time subscription filtered by pack_id
         const channel = supabase
             .channel(`pack-${packId}`)
             .on(
@@ -154,7 +193,6 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 (payload) => {
                     const newEvent = payload.new as DogEvent;
                     setEvents(prev => {
-                        // Avoid duplicates (we already added it optimistically)
                         if (prev.some(e => e.id === newEvent.id)) return prev;
                         return [newEvent, ...prev];
                     });
@@ -183,15 +221,32 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
     }, [packId]);
 
-    const setDog = (profile: DogProfile | null) => {
+    const setDog = async (profile: DogProfile | null) => {
         if (profile) {
-            // Auto-assign pack ID if not already set
             const finalProfile = {
                 ...profile,
                 packId: profile.packId || urlPackId || generatePackId()
             };
             localStorage.setItem('tailtalk_dog', JSON.stringify(finalProfile));
             setDogState(finalProfile);
+
+            // Save pack to Supabase so other users can join
+            if (supabase && finalProfile.packId) {
+                const { error } = await supabase
+                    .from('packs')
+                    .upsert({
+                        pack_id: finalProfile.packId,
+                        dog_name: finalProfile.name,
+                        dog_breed: finalProfile.breed,
+                        life_stage: finalProfile.lifeStage,
+                        dog_sex: finalProfile.sex || null,
+                        avatar_url: finalProfile.avatarUrl || null,
+                    }, { onConflict: 'pack_id' });
+
+                if (error) {
+                    console.error('Failed to save pack to Supabase:', error);
+                }
+            }
         } else {
             localStorage.removeItem('tailtalk_dog');
             setDogState(null);
@@ -224,10 +279,8 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             logged_by: currentUser?.name || undefined,
         };
 
-        // 1. Optimistic Update
         setEvents(prev => [newEvent, ...prev]);
 
-        // 2. Sync to Supabase if configured and pack exists
         if (supabase && currentPackId) {
             const { error } = await supabase.from('events').insert([{
                 id: newEvent.id,
@@ -246,10 +299,8 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const removeEvent = async (id: string) => {
-        // 1. Optimistic Update
         setEvents(prev => prev.filter(e => e.id !== id));
 
-        // 2. Sync to Supabase
         if (supabase && packId) {
             const { error } = await supabase.from('events').delete().match({ id });
             if (error) {
@@ -261,7 +312,6 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const resetDog = () => {
         localStorage.removeItem('tailtalk_dog');
         localStorage.removeItem('tailtalk_users');
-        // Clean URL params
         const url = new URL(window.location.href);
         url.searchParams.delete('pack');
         window.history.replaceState({}, '', url.toString());
@@ -295,7 +345,8 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         <DogContext.Provider value={{
             dog, stats, events, users, currentUser,
             setDog, setStats, setEvents, addEvent, removeEvent, resetDog,
-            addUser, removeUser, isAdmin, session, packId, syncStatus
+            addUser, removeUser, isAdmin, session, packId, syncStatus,
+            joiningPack, joinPackError
         }}>
             {children}
         </DogContext.Provider>

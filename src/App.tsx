@@ -8,7 +8,7 @@ import { DogProvider, useDog } from './context/DogContext';
 import { useVoice } from './hooks/useVoice';
 
 const AppContent: React.FC = () => {
-  const { dog, stats, events, setDog, resetDog, addUser, removeUser, users, isAdmin, packId, syncStatus } = useDog();
+  const { dog, stats, events, setDog, resetDog, addUser, removeUser, users, isAdmin, packId, syncStatus, joiningPack, joinPackError } = useDog();
   const {
     isProcessing,
     avatarMsg,
@@ -22,7 +22,89 @@ const AppContent: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsLinkCopied, setSettingsLinkCopied] = useState(false);
   const [settingsNewMember, setSettingsNewMember] = useState('');
+  const [joinName, setJoinName] = useState('');
 
+  // STATE 1: Loading pack data from Supabase
+  if (joiningPack) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] bg-luxe-base flex items-center justify-center p-10">
+        <div className="text-center space-y-8">
+          <div className="w-24 h-24 border-[3px] border-luxe-orange/10 border-t-luxe-orange rounded-full animate-spin mx-auto"></div>
+          <div className="space-y-3">
+            <h2 className="font-serif text-3xl italic font-bold text-luxe-deep">Joining Pack...</h2>
+            <p className="text-sm text-luxe-deep/40 font-medium">Fetching pack data from the cloud</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // STATE 2: Pack fetch failed
+  if (joinPackError) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] bg-luxe-base flex items-center justify-center p-10">
+        <div className="text-center space-y-8 max-w-sm">
+          <div className="text-6xl">😿</div>
+          <h2 className="font-serif text-3xl italic font-bold text-luxe-deep">Pack Not Found</h2>
+          <p className="text-sm text-luxe-deep/40 font-medium leading-relaxed">{joinPackError}</p>
+          <button
+            onClick={() => { window.location.href = window.location.origin; }}
+            className="py-4 px-8 btn-luxe rounded-2xl text-white font-black text-xs uppercase tracking-widest"
+          >
+            Start Fresh
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // STATE 3: Dog profile loaded from pack link, but user hasn't set their name yet
+  if (dog && users.length === 0) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] bg-luxe-base flex items-center justify-center p-10 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="absolute top-[-20%] right-[-10%] w-[100%] h-[100%] bg-gradient-to-bl from-luxe-orange/10 via-transparent to-transparent pointer-events-none"></div>
+        <div className="w-full max-w-sm text-center space-y-10 relative z-10">
+          {dog.avatarUrl ? (
+            <img src={dog.avatarUrl} alt={dog.name} className="w-28 h-28 rounded-[3rem] mx-auto shadow-2xl object-cover border-4 border-luxe-gold/20" />
+          ) : (
+            <div className="w-28 h-28 rounded-[3rem] mx-auto bg-luxe-pearl flex items-center justify-center text-5xl shadow-2xl border-4 border-luxe-gold/20">🐕</div>
+          )}
+
+          <div className="space-y-3">
+            <h1 className="font-serif text-4xl italic font-bold text-luxe-deep">Join {dog.name}'s Pack</h1>
+            <p className="text-sm text-luxe-deep/40 font-medium italic">
+              {dog.breed} · {dog.lifeStage}
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            <input
+              autoFocus
+              type="text"
+              placeholder="What's your name?"
+              className="w-full bg-luxe-pearl border-2 border-transparent focus:border-luxe-orange/30 rounded-2xl px-6 py-5 text-lg font-bold outline-none transition-all placeholder:text-luxe-deep/20 text-luxe-deep text-center"
+              value={joinName}
+              onChange={(e) => setJoinName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && joinName.trim()) {
+                  addUser(joinName.trim());
+                }
+              }}
+            />
+            <button
+              onClick={() => { if (joinName.trim()) addUser(joinName.trim()); }}
+              disabled={!joinName.trim()}
+              className="w-full py-6 btn-luxe rounded-[2rem] text-white font-black text-xs uppercase tracking-[0.2em] disabled:opacity-20 transition-all"
+            >
+              Join the Pack 🐾
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // STATE 4: No dog profile at all — show full onboarding
   if (!dog) {
     return <Onboarding onComplete={setDog} onAddUser={addUser} packId={packId} />;
   }
