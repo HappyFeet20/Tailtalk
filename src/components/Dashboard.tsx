@@ -433,15 +433,19 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
           <TrendingUp size={16} className="text-luxe-deep opacity-20" />
         </div>
 
-        <div className="card-pearl p-8 relative overflow-hidden">
+        <div className={`card-pearl p-6 relative overflow-hidden transition-all duration-700 ${stats.urgency > 0.8 ? 'border-luxe-orange/30 shadow-[0_20px_60px_rgba(255,140,0,0.08)]' : ''}`}>
           {/* Gradient mesh background */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-20 -left-20 w-60 h-60 bg-luxe-orange/5 rounded-full blur-[80px]"></div>
             <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-blue-500/5 rounded-full blur-[80px]"></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-luxe-gold/5 rounded-full blur-[60px]"></div>
+            {stats.urgency > 0.7 && (
+              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-red-500/5 to-transparent"></div>
+            )}
           </div>
 
-          <div className="relative z-10 flex justify-around items-start">
+          {/* 2×2 Gauge Grid */}
+          <div className="relative z-10 grid grid-cols-2 gap-y-6 gap-x-2 place-items-center">
             {[
               {
                 value: stats.tummy,
@@ -464,6 +468,13 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
                 status: stats.energy > 70 ? 'Charged' : stats.energy > 35 ? 'Steady' : 'Tired',
                 statusColor: stats.energy > 70 ? 'text-emerald-400' : stats.energy > 35 ? 'text-yellow-400' : 'text-red-400',
               },
+              {
+                value: Math.round(stats.urgency * 100),
+                label: 'Urgency',
+                color: stats.urgency > 0.75 ? '#EF4444' : stats.urgency > 0.4 ? '#F59E0B' : '#22C55E',
+                status: stats.urgency > 0.75 ? 'Needs Break' : stats.urgency > 0.4 ? 'Building' : 'Relaxed',
+                statusColor: stats.urgency > 0.75 ? 'text-red-400' : stats.urgency > 0.4 ? 'text-yellow-400' : 'text-emerald-400',
+              },
             ].map((vital) => (
               <div key={vital.label} className="flex flex-col items-center gap-1">
                 <CircularRing
@@ -479,54 +490,24 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
               </div>
             ))}
           </div>
-        </div>
 
-        {/* 4. Predictive Model - Potty Prediction */}
-        <div className={`mt-8 transition-all duration-700 ${stats.urgency > 0.7 ? 'scale-[1.03]' : 'scale-100'}`}>
-          <div className={`card-pearl p-10 relative overflow-hidden transition-all duration-700 ${stats.urgency > 0.8 ? 'border-luxe-orange/30 shadow-[0_30px_70px_rgba(255,140,0,0.1)]' : ''}`}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-luxe-orange/5 rounded-bl-[100%] transition-opacity duration-1000 group-hover:opacity-20 pointer-events-none"></div>
-
-            <div className="flex items-center justify-between mb-8 relative z-10">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stats.urgency > 0.8 ? 'bg-luxe-orange text-white shadow-xl' : 'bg-luxe-base text-luxe-deep/40'}`}>
-                  <AlertCircle size={22} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-luxe-deep">Potty Prediction</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Confidence Delta</p>
-                </div>
-              </div>
-              <div className={`text-4xl font-serif italic font-bold tracking-tighter ${stats.urgency > 0.8 ? 'text-luxe-orange' : 'text-luxe-deep/20'}`}>
-                {Math.round(stats.urgency * 100)}%
-              </div>
-            </div>
-
-            <div className="relative h-4 bg-luxe-base rounded-full overflow-hidden mb-8 p-1">
-              <div
-                className={`h-full transition-all duration-[2000ms] rounded-full cubic-bezier(0.16, 1, 0.3, 1) ${stats.urgency > 0.8 ? 'bg-gradient-to-r from-luxe-orange to-luxe-sunset' : 'bg-luxe-deep/10'}`}
-                style={{ width: `${stats.urgency * 100}%` }}
-              >
-                <div className="w-full h-full bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%' }}></div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
+          {/* Urgency Alert Banner */}
+          {stats.urgency > 0.7 && (
+            <div className="relative z-10 mt-6 flex items-center justify-between bg-red-500/10 backdrop-blur-sm rounded-2xl px-5 py-3 border border-red-500/20 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${stats.urgency > 0.75 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-                <p className="text-xs font-bold text-luxe-deep/40 uppercase tracking-widest">
-                  {stats.urgency > 0.75 ? 'Action Recommended' : 'System Equilibrium'}
-                </p>
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-red-400">
+                  Potty break recommended
+                </span>
               </div>
-              {stats.urgency > 0.7 && (
-                <button
-                  onClick={handleTakeBreak}
-                  className="px-6 py-3 bg-luxe-deep text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform hover:bg-luxe-orange"
-                >
-                  Take Break
-                </button>
-              )}
+              <button
+                onClick={handleTakeBreak}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform hover:bg-red-600"
+              >
+                Take Break
+              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
