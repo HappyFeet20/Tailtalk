@@ -234,49 +234,53 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
       </div>
 
       {/* 2. Memory Journal - Primary Action */}
-      <div className="px-4 space-y-8">
-        <div className="flex items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-[1.5rem] bg-white shadow-xl flex items-center justify-center text-luxe-orange border border-white/40">
-              <Calendar size={22} />
-            </div>
-            <h2 className="font-serif text-3xl italic font-bold text-luxe-deep">Memory Journal</h2>
-          </div>
+      <div className="px-4 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsAddingEvent(true)}
-              className="p-4 bg-luxe-deep text-white rounded-[1.5rem] shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-            >
-              <Plus size={20} />
-              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Log Event</span>
-            </button>
+            <div className="w-10 h-10 rounded-2xl bg-luxe-orange/10 flex items-center justify-center">
+              <Calendar size={18} className="text-luxe-orange" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-luxe-deep">Memory Journal</h2>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/20">{filteredEvents.length} {filteredEvents.length === 1 ? 'Entry' : 'Entries'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(prev => !prev)}
-              className={`p-4 glass rounded-[1.5rem] text-luxe-deep transition-all hover:bg-white shadow-lg ${showFilters ? 'opacity-100 bg-luxe-pearl' : 'opacity-30 hover:opacity-100'}`}
+              className={`p-3 rounded-2xl transition-all ${showFilters ? 'bg-luxe-deep text-white shadow-lg' : 'text-luxe-deep/25 hover:text-luxe-deep/60 hover:bg-luxe-base'}`}
             >
-              <Filter size={20} />
+              <Filter size={18} />
+            </button>
+            <button
+              onClick={() => setIsAddingEvent(true)}
+              className="p-3 bg-luxe-orange text-white rounded-2xl shadow-lg shadow-luxe-orange/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Plus size={18} />
             </button>
           </div>
         </div>
 
+        {/* Add Event Form */}
         {isAddingEvent && (
-          <div className="card-pearl p-8 animate-in slide-in-from-top-4 duration-500 relative bg-luxe-base/30">
+          <div className="card-pearl p-6 animate-in slide-in-from-top-4 duration-500 relative">
             <button
               onClick={() => setIsAddingEvent(false)}
-              className="absolute top-4 right-4 p-2 text-luxe-deep/30 hover:text-luxe-deep"
+              className="absolute top-4 right-4 p-2 text-luxe-deep/20 hover:text-luxe-deep transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
-            <form onSubmit={handleAddManualEvent} className="space-y-6">
+            <form onSubmit={handleAddManualEvent} className="space-y-4">
               <div className="grid grid-cols-3 gap-2">
                 {filterOptions.filter(o => o.value !== 'all').map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setManualEvent(prev => ({ ...prev, type: opt.value as EventType }))}
-                    className={`px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${manualEvent.type === opt.value
+                    className={`px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${manualEvent.type === opt.value
                       ? 'bg-luxe-deep text-luxe-base shadow-lg scale-105'
-                      : 'bg-luxe-base text-luxe-deep/40 border border-transparent'
+                      : 'bg-luxe-base text-luxe-deep/30'
                       }`}
                   >
                     {opt.label}
@@ -286,14 +290,14 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
               <input
                 type="text"
                 placeholder="What happened? (e.g., 'Long walk in the park')"
-                className="w-full bg-luxe-base border-2 border-transparent focus:border-luxe-orange/30 rounded-2xl px-6 py-4 text-sm font-medium outline-none transition-all placeholder:text-luxe-deep/20 text-luxe-deep"
+                className="w-full bg-luxe-base border-2 border-transparent focus:border-luxe-orange/30 rounded-2xl px-5 py-3.5 text-sm font-medium outline-none transition-all placeholder:text-luxe-deep/15 text-luxe-deep"
                 value={manualEvent.rawText}
                 onChange={(e) => setManualEvent(prev => ({ ...prev, rawText: e.target.value }))}
                 required
               />
               <button
                 type="submit"
-                className="w-full py-4 bg-luxe-orange text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-luxe-orange/20 active:scale-[0.98] transition-all"
+                className="w-full py-3.5 bg-luxe-orange text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-luxe-orange/20 active:scale-[0.98] transition-all"
               >
                 Log to Journal
               </button>
@@ -301,15 +305,16 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
           </div>
         )}
 
+        {/* Filter Chips */}
         {showFilters && (
-          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 px-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
             {filterOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setFilterType(opt.value)}
-                className={`flex-shrink-0 px-8 py-4 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.3em] transition-all duration-500 border-2 ${filterType === opt.value
-                  ? 'bg-luxe-deep text-luxe-base border-luxe-deep shadow-2xl scale-105'
-                  : 'bg-luxe-pearl border-luxe-border text-luxe-deep/40 hover:text-luxe-deep/80 hover:shadow-lg'
+                className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${filterType === opt.value
+                  ? 'bg-luxe-deep text-white shadow-lg'
+                  : 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30 hover:text-luxe-deep/60'
                   }`}
               >
                 {opt.label}
@@ -318,95 +323,112 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
           </div>
         )}
 
-        <div className="space-y-6 min-h-[400px] relative pb-20">
-          <div className="absolute left-8 top-6 bottom-10 w-1 bg-luxe-deep/5 rounded-full"></div>
+        {/* Timeline */}
+        <div className="space-y-4 min-h-[300px] relative pb-16">
+          {/* Timeline line */}
+          <div className="absolute left-[19px] top-4 bottom-8 w-[2px] bg-gradient-to-b from-luxe-orange/20 via-luxe-deep/5 to-transparent rounded-full"></div>
 
           {filteredEvents.length === 0 ? (
-            <div className="card-pearl p-20 text-center border-dashed border-luxe-deep/5 animate-in fade-in duration-700">
-              <div className="w-20 h-20 bg-luxe-base rounded-full mx-auto mb-8 flex items-center justify-center text-luxe-deep/10 shadow-inner">
-                <History size={36} />
+            <div className="card-pearl p-16 text-center animate-in fade-in duration-700">
+              <div className="w-16 h-16 bg-luxe-base rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-inner">
+                <History size={28} className="text-luxe-deep/10" />
               </div>
-              <p className="text-base text-luxe-deep opacity-20 italic font-medium tracking-wide">
-                No memories found in the current lineage.
+              <p className="text-sm text-luxe-deep/20 italic font-medium">
+                No memories yet. Tap + to start logging.
               </p>
             </div>
           ) : (
-            filteredEvents.map((event) => (
+            filteredEvents.map((event, index) => (
               <div
                 key={event.id}
-                className={`relative pl-16 transition-all duration-700 ease-out group
-                  ${newestEventId === event.id ? 'animate-event-entry scale-[1.03]' : 'animate-event-shift'}
+                className={`relative pl-12 transition-all duration-700 ease-out group
+                  ${newestEventId === event.id ? 'animate-event-entry' : index < 3 ? 'animate-event-shift' : ''}
                 `}
               >
                 {/* Timeline Pin */}
-                <div className={`absolute left-[28px] top-8 w-4 h-4 rounded-full border-[3px] border-luxe-base z-10 transition-all duration-700
-                  ${newestEventId === event.id ? 'bg-luxe-orange scale-150 shadow-[0_0_15px_rgba(255,140,0,0.6)]' : 'bg-luxe-deep/20'}
+                <div className={`absolute left-[12px] top-6 w-[16px] h-[16px] rounded-full border-[3px] border-luxe-pearl z-10 transition-all duration-700
+                  ${newestEventId === event.id
+                    ? 'bg-luxe-orange scale-125 shadow-[0_0_12px_rgba(255,140,0,0.5)]'
+                    : index === 0
+                      ? 'bg-luxe-orange/60'
+                      : 'bg-luxe-deep/15'
+                  }
                 `}></div>
 
-                <div className="card-pearl p-8 relative overflow-hidden group-hover:bg-luxe-base transition-all duration-500">
+                <div className={`card-pearl p-5 relative overflow-hidden transition-all duration-500 group-hover:shadow-lg ${newestEventId === event.id ? 'border-luxe-orange/20 shadow-[0_8px_30px_rgba(255,140,0,0.06)]' : ''
+                  }`}>
+                  {/* Type accent strip */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-full ${event.type === 'walk' ? 'bg-emerald-400' :
+                      event.type === 'feed' ? 'bg-luxe-orange' :
+                        event.type === 'water' ? 'bg-blue-400' :
+                          event.type === 'pee' || event.type === 'poop' ? 'bg-amber-400' :
+                            'bg-luxe-deep/10'
+                    }`}></div>
+
                   {/* Delete Confirmation Overlay */}
                   {confirmDeleteId === event.id && (
-                    <div className="absolute inset-0 z-20 bg-red-950/90 backdrop-blur-md flex items-center justify-center gap-4 px-6 animate-in fade-in zoom-in-95 duration-300 rounded-[2.5rem]">
-                      <p className="text-white text-xs font-black uppercase tracking-widest mr-2">Remove this entry?</p>
+                    <div className="absolute inset-0 z-20 bg-red-950/90 backdrop-blur-md flex items-center justify-center gap-3 px-4 animate-in fade-in zoom-in-95 duration-300 rounded-[2.5rem]">
+                      <p className="text-white text-[10px] font-black uppercase tracking-widest mr-1">Remove?</p>
                       <button
                         onClick={() => {
                           removeEvent(event.id);
                           setConfirmDeleteId(null);
                         }}
-                        className="px-5 py-3 bg-red-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform"
+                        className="px-4 py-2 bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform"
                       >
-                        Confirm
+                        Yes
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(null)}
-                        className="px-5 py-3 bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform"
+                        className="px-4 py-2 bg-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-transform"
                       >
-                        Cancel
+                        No
                       </button>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                      <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center bg-luxe-base/50 transition-all duration-1000 group-hover:scale-110 shadow-inner group-hover:rotate-6 ${getEventColor(event.type)}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-4 min-w-0">
+                      {/* Event icon */}
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-inner ${getEventColor(event.type)}`}>
                         {getEventIcon(event.type)}
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-luxe-deep">{event.type}</h3>
-                          <div className="w-1.5 h-1.5 bg-luxe-deep/10 rounded-full"></div>
-                          <p className="text-[11px] text-luxe-deep/40 font-bold uppercase">
+
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-luxe-deep">{event.type}</span>
+                          <span className="text-[9px] text-luxe-deep/25 font-bold">
                             {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          </span>
                         </div>
-                        <p className="text-lg text-luxe-deep/70 truncate max-w-[200px] italic font-medium leading-tight group-hover:text-luxe-deep">
+                        <p className="text-sm text-luxe-deep/60 truncate italic font-medium leading-snug group-hover:text-luxe-deep/80 transition-colors">
                           "{event.rawText}"
                         </p>
                         {event.logged_by && (
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-luxe-gold/50 mt-1">
+                          <p className="text-[8px] font-bold uppercase tracking-widest text-luxe-gold/40">
                             by {event.logged_by}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-3">
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <button
                         onClick={() => setConfirmDeleteId(event.id)}
-                        className="p-3 rounded-xl text-luxe-deep/20 hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
-                        title="Delete this entry"
+                        className="p-2 rounded-xl text-luxe-deep/10 hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-90 opacity-0 group-hover:opacity-100"
+                        title="Delete"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={14} />
                       </button>
                       {event.metadata.amount && (
-                        <span className="bg-luxe-orange text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                        <span className="bg-luxe-orange/10 text-luxe-orange px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
                           {event.metadata.amount}
                         </span>
                       )}
                       {event.metadata.duration && (
-                        <div className="flex items-center gap-2 bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100">
-                          <Clock size={12} className="text-emerald-500" />
-                          <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">{event.metadata.duration}</span>
+                        <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1 rounded-full">
+                          <Clock size={10} className="text-emerald-500" />
+                          <span className="text-[8px] text-emerald-500 font-black uppercase tracking-widest">{event.metadata.duration}</span>
                         </div>
                       )}
                     </div>
@@ -633,8 +655,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
             <div
               key={badge.name}
               className={`relative flex flex-col items-center p-3 rounded-[1.5rem] transition-all duration-700 group ${badge.condition
-                  ? 'badge-shine bg-luxe-pearl border border-luxe-gold/30 shadow-[0_4px_20px_rgba(212,175,55,0.15)] hover:scale-110 hover:shadow-[0_8px_30px_rgba(212,175,55,0.25)]'
-                  : 'bg-luxe-base/50 border border-luxe-border/50 opacity-40'
+                ? 'badge-shine bg-luxe-pearl border border-luxe-gold/30 shadow-[0_4px_20px_rgba(212,175,55,0.15)] hover:scale-110 hover:shadow-[0_8px_30px_rgba(212,175,55,0.25)]'
+                : 'bg-luxe-base/50 border border-luxe-border/50 opacity-40'
                 }`}
             >
               {/* Emoji Icon - consistent 40px */}
