@@ -3,12 +3,12 @@ import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import BigMic from './components/BigMic';
 import { Auth } from './components/Auth';
-import { Settings, LogOut, ChevronLeft, MapPin, Heart, X, User, Users, UserPlus, Trash2, Copy, CheckCircle } from 'lucide-react';
+import { Settings, LogOut, ChevronLeft, MapPin, Heart, X, User, Users, UserPlus, Trash2, Copy, CheckCircle, Wifi, WifiOff, Cloud } from 'lucide-react';
 import { DogProvider, useDog } from './context/DogContext';
 import { useVoice } from './hooks/useVoice';
 
 const AppContent: React.FC = () => {
-  const { dog, stats, events, setDog, resetDog, addUser, removeUser, users, isAdmin } = useDog();
+  const { dog, stats, events, setDog, resetDog, addUser, removeUser, users, isAdmin, packId, syncStatus } = useDog();
   const {
     isProcessing,
     avatarMsg,
@@ -24,7 +24,7 @@ const AppContent: React.FC = () => {
   const [settingsNewMember, setSettingsNewMember] = useState('');
 
   if (!dog) {
-    return <Onboarding onComplete={setDog} onAddUser={addUser} />;
+    return <Onboarding onComplete={setDog} onAddUser={addUser} packId={packId} />;
   }
 
   return (
@@ -45,8 +45,10 @@ const AppContent: React.FC = () => {
               <div className="flex flex-col">
                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">System Core</h2>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                  <span className="text-[11px] font-bold text-luxe-deep/60 tracking-wider uppercase">Active Monitoring</span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'synced' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : syncStatus === 'error' ? 'bg-red-500' : syncStatus === 'syncing' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                  <span className="text-[11px] font-bold text-luxe-deep/60 tracking-wider uppercase">
+                    {syncStatus === 'synced' ? 'Pack Synced' : syncStatus === 'syncing' ? 'Connecting...' : syncStatus === 'error' ? 'Sync Error' : 'Local Mode'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -138,17 +140,26 @@ const AppContent: React.FC = () => {
 
                 <div className="h-px bg-luxe-border"></div>
 
-                {/* Share Link */}
+                {/* Pack Code + Share Link */}
+                {packId && (
+                  <div className="text-center py-2">
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/30">Pack Code</span>
+                    <div className="font-mono text-xl font-black text-luxe-gold tracking-[0.3em] mt-1">{packId}</div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
+                    const url = new URL(window.location.href);
+                    if (packId) url.searchParams.set('pack', packId);
+                    navigator.clipboard.writeText(url.toString());
                     setSettingsLinkCopied(true);
                     setTimeout(() => setSettingsLinkCopied(false), 2000);
                   }}
                   className={`w-full py-4 glass rounded-2xl flex items-center justify-center gap-3 transition-all ${settingsLinkCopied ? 'text-green-400' : 'text-luxe-deep/60 hover:text-luxe-deep'}`}
                 >
                   {settingsLinkCopied ? <CheckCircle size={16} /> : <Copy size={16} />}
-                  <span className="font-bold text-xs uppercase tracking-widest">{settingsLinkCopied ? 'Link Copied!' : 'Share App Link'}</span>
+                  <span className="font-bold text-xs uppercase tracking-widest">{settingsLinkCopied ? 'Link Copied!' : 'Share Pack Link'}</span>
                 </button>
 
                 {/* Reset Dog Button */}

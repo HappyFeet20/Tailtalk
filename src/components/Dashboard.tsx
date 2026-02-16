@@ -491,6 +491,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
                         <p className="text-lg text-luxe-deep/70 truncate max-w-[200px] italic font-medium leading-tight group-hover:text-luxe-deep">
                           "{event.rawText}"
                         </p>
+                        {event.logged_by && (
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-luxe-gold/50 mt-1">
+                            by {event.logged_by}
+                          </p>
+                        )}
                       </div>
                     </div>
 

@@ -14,6 +14,7 @@ export interface DogProfile {
   lifeStage: 'puppy' | 'adult' | 'senior';
   sex?: 'male' | 'female';
   avatarUrl?: string;
+  packId?: string;
 }
 
 export interface UserProfile {
@@ -28,6 +29,8 @@ export interface DogEvent {
   type: EventType;
   rawText: string;
   timestamp: number;
+  pack_id?: string;
+  logged_by?: string;
   metadata: {
     amount?: string;
     consistency?: number;

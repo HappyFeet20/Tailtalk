@@ -1,9 +1,25 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { DogProfile, DogStats, DogEvent, EventType, UserProfile } from '../types';
 import { INITIAL_STATS } from '../constants';
+
+// Generate a 6-character pack code
+const generatePackId = (): string => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 to avoid confusion
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+};
+
+// Parse ?pack= from URL
+const getPackIdFromUrl = (): string | null => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('pack');
+};
 
 interface DogContextType {
     dog: DogProfile | null;
@@ -21,11 +37,15 @@ interface DogContextType {
     removeUser: (id: string) => void;
     isAdmin: boolean;
     session: Session | null;
+    packId: string | null;
+    syncStatus: 'local' | 'syncing' | 'synced' | 'error';
 }
 
 const DogContext = createContext<DogContextType | undefined>(undefined);
 
 export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const urlPackId = getPackIdFromUrl();
+
     const [dog, setDogState] = useState<DogProfile | null>(() => {
         try {
             const saved = localStorage.getItem('tailtalk_dog');
@@ -48,8 +68,12 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [stats, setStats] = useState<DogStats>(INITIAL_STATS);
     const [events, setEvents] = useState<DogEvent[]>([]);
     const [session, setSession] = useState<Session | null>(null);
+    const [syncStatus, setSyncStatus] = useState<'local' | 'syncing' | 'synced' | 'error'>(supabase ? 'syncing' : 'local');
 
-    // The current user is always the first user (admin) in local mode
+    // Resolve pack ID: URL param > saved in dog profile > null
+    const packId = urlPackId || dog?.packId || null;
+
+    // The current user is the first user (admin) in local mode
     const currentUser = users.length > 0 ? users[0] : null;
     const isAdmin = currentUser?.role === 'admin';
 
@@ -58,7 +82,16 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.setItem('tailtalk_users', JSON.stringify(users));
     }, [users]);
 
-    // Auth & Real-time Subscription (only if Supabase is configured)
+    // If joining via URL pack code, save it to the dog profile
+    useEffect(() => {
+        if (urlPackId && dog && dog.packId !== urlPackId) {
+            const updatedDog = { ...dog, packId: urlPackId };
+            setDogState(updatedDog);
+            localStorage.setItem('tailtalk_dog', JSON.stringify(updatedDog));
+        }
+    }, [urlPackId, dog]);
+
+    // Auth (optional - only if Supabase configured)
     useEffect(() => {
         if (!supabase) return;
 
@@ -75,47 +108,94 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return () => subscription.unsubscribe();
     }, []);
 
-    // Sync Events when Session Changes
+    // Fetch & subscribe to events by pack_id
     useEffect(() => {
-        if (!session || !supabase) return;
+        if (!supabase || !packId) {
+            setSyncStatus(supabase ? 'syncing' : 'local');
+            return;
+        }
+
+        setSyncStatus('syncing');
 
         const fetchEvents = async () => {
-            const { data, error } = await supabase
-                .from('events')
-                .select('*')
-                .order('timestamp', { ascending: false });
+            try {
+                const { data, error } = await supabase
+                    .from('events')
+                    .select('*')
+                    .eq('pack_id', packId)
+                    .order('timestamp', { ascending: false });
 
-            if (data && !error) {
-                setEvents(data as any);
+                if (data && !error) {
+                    setEvents(data as DogEvent[]);
+                    setSyncStatus('synced');
+                } else {
+                    console.error('Failed to fetch events:', error);
+                    setSyncStatus('error');
+                }
+            } catch (e) {
+                console.error('Fetch events error:', e);
+                setSyncStatus('error');
             }
         };
 
         fetchEvents();
 
-        // Real-time listener
+        // Real-time subscription filtered by pack_id
         const channel = supabase
-            .channel('public:events')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (payload) => {
-                if (payload.eventType === 'INSERT') {
-                    setEvents(prev => [payload.new as any, ...prev]);
-                } else if (payload.eventType === 'DELETE') {
+            .channel(`pack-${packId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'events',
+                    filter: `pack_id=eq.${packId}`
+                },
+                (payload) => {
+                    const newEvent = payload.new as DogEvent;
+                    setEvents(prev => {
+                        // Avoid duplicates (we already added it optimistically)
+                        if (prev.some(e => e.id === newEvent.id)) return prev;
+                        return [newEvent, ...prev];
+                    });
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: 'events',
+                    filter: `pack_id=eq.${packId}`
+                },
+                (payload) => {
                     setEvents(prev => prev.filter(e => e.id !== payload.old.id));
                 }
-            })
-            .subscribe();
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    setSyncStatus('synced');
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [session]);
+    }, [packId]);
 
     const setDog = (profile: DogProfile | null) => {
         if (profile) {
-            localStorage.setItem('tailtalk_dog', JSON.stringify(profile));
+            // Auto-assign pack ID if not already set
+            const finalProfile = {
+                ...profile,
+                packId: profile.packId || urlPackId || generatePackId()
+            };
+            localStorage.setItem('tailtalk_dog', JSON.stringify(finalProfile));
+            setDogState(finalProfile);
         } else {
             localStorage.removeItem('tailtalk_dog');
+            setDogState(null);
         }
-        setDogState(profile);
     };
 
     const addUser = (name: string, emoji?: string): UserProfile => {
@@ -131,27 +211,36 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const removeUser = (id: string) => {
-        // Can't remove admin
-        setUsers(prev => prev.filter(u => !(u.id === id && u.role === 'admin') && (u.id !== id || u.role === 'admin') ? u : null).filter(Boolean) as UserProfile[]);
-        // Simpler:
         setUsers(prev => prev.filter(u => u.id !== id || u.role === 'admin'));
     };
 
     const addEvent = async (eventData: Omit<DogEvent, 'id' | 'timestamp'>) => {
+        const currentPackId = packId || dog?.packId;
         const newEvent: DogEvent = {
             ...eventData,
             id: self.crypto.randomUUID ? self.crypto.randomUUID() : Math.random().toString(36).substring(2),
             timestamp: Date.now(),
+            pack_id: currentPackId || undefined,
+            logged_by: currentUser?.name || undefined,
         };
 
-        // 1. Optimistic Update (Immediate Feedback)
+        // 1. Optimistic Update
         setEvents(prev => [newEvent, ...prev]);
 
-        // 2. Sync to Supabase (Background) — only if configured
-        if (session && supabase) {
-            const { error } = await supabase.from('events').insert([newEvent]);
+        // 2. Sync to Supabase if configured and pack exists
+        if (supabase && currentPackId) {
+            const { error } = await supabase.from('events').insert([{
+                id: newEvent.id,
+                type: newEvent.type,
+                rawText: newEvent.rawText,
+                timestamp: newEvent.timestamp,
+                metadata: newEvent.metadata,
+                pack_id: currentPackId,
+                logged_by: currentUser?.name || null,
+            }]);
             if (error) {
-                console.error("Sync failed, reverting could be added here but keeping local for now.", error);
+                console.error("Sync failed:", error);
+                setSyncStatus('error');
             }
         }
     };
@@ -160,11 +249,11 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // 1. Optimistic Update
         setEvents(prev => prev.filter(e => e.id !== id));
 
-        // 2. Sync to Supabase — only if configured
-        if (session && supabase) {
+        // 2. Sync to Supabase
+        if (supabase && packId) {
             const { error } = await supabase.from('events').delete().match({ id });
             if (error) {
-                console.error("Delete sync failed", error);
+                console.error("Delete sync failed:", error);
             }
         }
     };
@@ -172,11 +261,15 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const resetDog = () => {
         localStorage.removeItem('tailtalk_dog');
         localStorage.removeItem('tailtalk_users');
+        // Clean URL params
+        const url = new URL(window.location.href);
+        url.searchParams.delete('pack');
+        window.history.replaceState({}, '', url.toString());
         if (session && supabase) supabase.auth.signOut();
         window.location.reload();
     };
 
-    // Logic to simulate urgency increase over time
+    // Urgency simulation
     useEffect(() => {
         if (!dog) return;
 
@@ -199,7 +292,11 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [dog?.lifeStage]);
 
     return (
-        <DogContext.Provider value={{ dog, stats, events, users, currentUser, setDog, setStats, setEvents, addEvent, removeEvent, resetDog, addUser, removeUser, isAdmin, session }}>
+        <DogContext.Provider value={{
+            dog, stats, events, users, currentUser,
+            setDog, setStats, setEvents, addEvent, removeEvent, resetDog,
+            addUser, removeUser, isAdmin, session, packId, syncStatus
+        }}>
             {children}
         </DogContext.Provider>
     );

@@ -7,11 +7,12 @@ import { COMMON_BREEDS } from '../constants';
 interface OnboardingProps {
   onComplete: (profile: DogProfile) => void;
   onAddUser: (name: string, emoji?: string) => UserProfile;
+  packId: string | null;
 }
 
 const AVATAR_EMOJIS = ['🐕', '🐶', '🦮', '🐩', '🐾', '💛', '🌟', '✨', '🎯', '🏠', '💜', '🧡'];
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onAddUser }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onAddUser, packId }) => {
   const [step, setStep] = useState(1);
   const [isFinishing, setIsFinishing] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -71,7 +72,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onAddUser }) => {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const url = new URL(window.location.href);
+    if (packId) url.searchParams.set('pack', packId);
+    navigator.clipboard.writeText(url.toString());
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
@@ -88,7 +91,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onAddUser }) => {
     const avatarUrl = await generateDogAvatar(pendingProfile.breed, pendingProfile.lifeStage);
     const finalProfile = {
       ...pendingProfile,
-      avatarUrl: avatarUrl || undefined
+      avatarUrl: avatarUrl || undefined,
+      packId: packId || undefined,
     };
 
     setTimeout(() => setStatusMsg(`Syncing Neural Protocols...`), 1000);
