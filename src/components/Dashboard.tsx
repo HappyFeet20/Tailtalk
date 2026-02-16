@@ -21,7 +21,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
   const [isAvatarAnimating, setIsAvatarAnimating] = useState(false);
   const prevEventsCount = useRef(events.length);
   const [newestEventId, setNewestEventId] = useState<string | null>(null);
-  const { removeEvent, addEvent, setStats } = useDog();
+  const { removeEvent, addEvent, setStats, refreshData, syncStatus } = useDog();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [manualEvent, setManualEvent] = useState({
@@ -33,6 +34,34 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
   // --- Insights state ---
   const [insights, setInsights] = useState<string[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
+
+  // --- Full Refresh ---
+  const handleFullRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      // 1. Sync events from Supabase (stats auto-recompute)
+      await refreshData();
+
+      // 2. Regenerate AI insights if enough data
+      if (events.length >= 5) {
+        setInsightsLoading(true);
+        try {
+          const newInsights = await generateInsights(events, dogProfile);
+          setInsights(newInsights);
+        } catch (e) {
+          console.error('Insights refresh failed:', e);
+        } finally {
+          setInsightsLoading(false);
+        }
+      }
+    } catch (e) {
+      console.error('Refresh failed:', e);
+    } finally {
+      // Brief delay so the animation is visible even on fast connections
+      setTimeout(() => setIsRefreshing(false), 600);
+    }
+  };
   const insightsFetched = useRef(false);
 
   const fetchInsights = async () => {
@@ -190,6 +219,25 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
     <div className="w-full space-y-12 animate-in fade-in duration-1000 overflow-visible">
       {/* 1. Portrait Masterpiece - Pearl Edition */}
       <div className="relative pt-6 flex flex-col items-center">
+        {/* Refresh Button - top right */}
+        <button
+          onClick={handleFullRefresh}
+          disabled={isRefreshing}
+          className={`absolute top-4 right-4 z-20 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 active:scale-95 ${isRefreshing
+              ? 'bg-luxe-orange/10 text-luxe-orange shadow-lg shadow-luxe-orange/10'
+              : syncStatus === 'synced'
+                ? 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30 hover:text-luxe-deep/60 hover:shadow-lg hover:bg-white'
+                : syncStatus === 'error'
+                  ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                  : 'bg-luxe-pearl border border-luxe-border text-luxe-deep/30'
+            }`}
+        >
+          <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+          <span>{isRefreshing ? 'Syncing' : syncStatus === 'error' ? 'Retry' : 'Refresh'}</span>
+          {syncStatus === 'synced' && !isRefreshing && (
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"></div>
+          )}
+        </button>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-luxe-orange/5 rounded-full blur-[80px] -z-10 animate-pulse"></div>
 
         <div className="relative group">
@@ -359,10 +407,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
                   }`}>
                   {/* Type accent strip */}
                   <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-full ${event.type === 'walk' ? 'bg-emerald-400' :
-                      event.type === 'feed' ? 'bg-luxe-orange' :
-                        event.type === 'water' ? 'bg-blue-400' :
-                          event.type === 'pee' || event.type === 'poop' ? 'bg-amber-400' :
-                            'bg-luxe-deep/10'
+                    event.type === 'feed' ? 'bg-luxe-orange' :
+                      event.type === 'water' ? 'bg-blue-400' :
+                        event.type === 'pee' || event.type === 'poop' ? 'bg-amber-400' :
+                          'bg-luxe-deep/10'
                     }`}></div>
 
                   {/* Delete Confirmation Overlay */}

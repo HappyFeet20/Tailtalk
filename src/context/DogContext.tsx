@@ -35,6 +35,7 @@ interface DogContextType {
     resetDog: () => void;
     addUser: (name: string, emoji?: string) => UserProfile;
     removeUser: (id: string) => void;
+    refreshData: () => Promise<void>;
     isAdmin: boolean;
     session: Session | null;
     packId: string | null;
@@ -309,6 +310,34 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     };
 
+    const refreshData = async () => {
+        if (!supabase || !packId) {
+            // Local-only: just force stats recompute by toggling events
+            setEvents(prev => [...prev]);
+            return;
+        }
+
+        setSyncStatus('syncing');
+        try {
+            const { data, error } = await supabase
+                .from('events')
+                .select('*')
+                .eq('pack_id', packId)
+                .order('timestamp', { ascending: false });
+
+            if (data && !error) {
+                setEvents(data as DogEvent[]);
+                setSyncStatus('synced');
+            } else {
+                console.error('Refresh failed:', error);
+                setSyncStatus('error');
+            }
+        } catch (e) {
+            console.error('Refresh error:', e);
+            setSyncStatus('error');
+        }
+    };
+
     const resetDog = () => {
         localStorage.removeItem('tailtalk_dog');
         localStorage.removeItem('tailtalk_users');
@@ -395,7 +424,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         <DogContext.Provider value={{
             dog, stats, events, users, currentUser,
             setDog, setStats, setEvents, addEvent, removeEvent, resetDog,
-            addUser, removeUser, isAdmin, session, packId, syncStatus,
+            addUser, removeUser, refreshData, isAdmin, session, packId, syncStatus,
             joiningPack, joinPackError
         }}>
             {children}
