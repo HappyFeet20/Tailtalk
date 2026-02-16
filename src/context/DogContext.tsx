@@ -319,27 +319,77 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         window.location.reload();
     };
 
-    // Urgency simulation
+    // Compute stats from event history — recomputes when events change or via timer
     useEffect(() => {
         if (!dog) return;
 
-        const timer = setInterval(() => {
-            setStats(prev => {
-                const timeFactor = dog.lifeStage === 'puppy' ? 0.05 : dog.lifeStage === 'senior' ? 0.03 : 0.01;
-                const newUrgency = Math.min(1, prev.urgency + timeFactor);
+        const computeStats = () => {
+            const now = Date.now();
+            const HOUR = 3600000;
+            const recentEvents = events.filter(e => now - e.timestamp < 12 * HOUR);
 
-                return {
-                    ...prev,
-                    urgency: newUrgency,
-                    energy: Math.max(0, prev.energy - 0.1),
-                    tummy: Math.max(0, prev.tummy - 0.05),
-                    tank: Math.max(0, prev.tank - 0.08),
-                };
+            // Find most recent events of each type
+            const lastFood = recentEvents.filter(e => e.type === 'food').sort((a, b) => b.timestamp - a.timestamp)[0];
+            const lastWater = recentEvents.filter(e => e.type === 'water').sort((a, b) => b.timestamp - a.timestamp)[0];
+            const lastWalk = recentEvents.filter(e => e.type === 'walk').sort((a, b) => b.timestamp - a.timestamp)[0];
+            const lastPotty = recentEvents.filter(e => e.type === 'pee' || e.type === 'poop').sort((a, b) => b.timestamp - a.timestamp)[0];
+
+            // Decay rate based on life stage (faster for puppies)
+            const decayMultiplier = dog.lifeStage === 'puppy' ? 1.5 : dog.lifeStage === 'senior' ? 0.8 : 1.0;
+
+            // Tummy: starts at 100 after food, decays ~15/hr
+            let tummy = 20; // base if never fed
+            if (lastFood) {
+                const hoursSince = (now - lastFood.timestamp) / HOUR;
+                tummy = Math.max(5, 100 - hoursSince * 15 * decayMultiplier);
+            }
+
+            // Tank: starts at 100 after water, decays ~20/hr
+            let tank = 15;
+            if (lastWater) {
+                const hoursSince = (now - lastWater.timestamp) / HOUR;
+                tank = Math.max(5, 100 - hoursSince * 20 * decayMultiplier);
+            }
+
+            // Energy: starts at 100 after walk, decays ~8/hr
+            let energy = 30;
+            if (lastWalk) {
+                const hoursSince = (now - lastWalk.timestamp) / HOUR;
+                energy = Math.max(10, 100 - hoursSince * 8 * decayMultiplier);
+            }
+
+            // Urgency: builds up from last potty event, faster for puppies
+            let urgency = 0.8; // high if never gone
+            if (lastPotty) {
+                const hoursSince = (now - lastPotty.timestamp) / HOUR;
+                // Builds from 0 to 1 over ~4 hours (puppy) / ~6 hours (adult) / ~8 hours (senior)
+                const urgencyHours = dog.lifeStage === 'puppy' ? 4 : dog.lifeStage === 'senior' ? 8 : 6;
+                urgency = Math.min(1, hoursSince / urgencyHours);
+            }
+            // Also factor in food/water (eating/drinking increases urgency faster)
+            if (lastFood && lastPotty && lastFood.timestamp > lastPotty.timestamp) {
+                const hoursSinceFood = (now - lastFood.timestamp) / HOUR;
+                urgency = Math.min(1, urgency + (hoursSinceFood > 0.5 ? 0.15 : 0));
+            }
+            if (lastWater && lastPotty && lastWater.timestamp > lastPotty.timestamp) {
+                const hoursSinceWater = (now - lastWater.timestamp) / HOUR;
+                urgency = Math.min(1, urgency + (hoursSinceWater > 0.3 ? 0.1 : 0));
+            }
+
+            setStats({
+                tummy: Math.round(tummy),
+                tank: Math.round(tank),
+                energy: Math.round(energy),
+                urgency: Math.round(urgency * 100) / 100,
             });
-        }, 60000);
+        };
 
+        computeStats();
+
+        // Re-compute every minute so time-based decay stays current
+        const timer = setInterval(computeStats, 60000);
         return () => clearInterval(timer);
-    }, [dog?.lifeStage]);
+    }, [dog?.lifeStage, events]);
 
     return (
         <DogContext.Provider value={{
