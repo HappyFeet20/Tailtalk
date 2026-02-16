@@ -233,200 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
         </div>
       </div>
 
-      {/* Streaks & Achievements */}
-      <div className="px-4 space-y-6">
-        {/* Streak Counters */}
-        <div className="flex items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Flame size={16} className="text-luxe-orange" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Streaks</h2>
-          </div>
-        </div>
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
-          {[
-            { label: 'Walks', value: streaks.walks, icon: '🚶', color: 'from-emerald-500/20 to-emerald-500/5' },
-            { label: 'Feeding', value: streaks.feeding, icon: '🍽️', color: 'from-luxe-orange/20 to-luxe-orange/5' },
-            { label: 'Hydration', value: streaks.hydration, icon: '💧', color: 'from-blue-500/20 to-blue-500/5' },
-          ].map(s => (
-            <div key={s.label} className={`flex-shrink-0 card-pearl p-5 min-w-[120px] text-center relative overflow-hidden group`}>
-              <div className={`absolute inset-0 bg-gradient-to-b ${s.color} opacity-50`}></div>
-              <div className="relative z-10">
-                <span className="text-2xl">{s.icon}</span>
-                <p className={`text-3xl font-bold mt-2 tracking-tight ${s.value > 0 ? 'text-luxe-deep' : 'text-luxe-deep/20'}`}>
-                  {s.value}<span className="text-sm font-medium opacity-40 ml-0.5">d</span>
-                </p>
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/30">{s.label}</span>
-              </div>
-              {s.value >= 3 && (
-                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-luxe-orange animate-pulse shadow-[0_0_8px_rgba(255,140,0,0.6)]"></div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Achievement Badges */}
-        <div className="flex items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Award size={16} className="text-luxe-gold" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Badges</h2>
-          </div>
-          <span className="text-[10px] font-bold text-luxe-deep/20">{badges.filter(b => b.condition).length}/{badges.length}</span>
-        </div>
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
-          {badges.map(badge => (
-            <div
-              key={badge.name}
-              className={`flex-shrink-0 card-pearl p-4 min-w-[100px] text-center transition-all duration-500 ${badge.condition
-                  ? 'badge-shine border-luxe-gold/20'
-                  : 'opacity-30 grayscale'
-                }`}
-            >
-              <span className="text-3xl block">{badge.icon}</span>
-              <p className="text-[9px] font-black uppercase tracking-widest text-luxe-deep/60 mt-2 leading-tight">{badge.name}</p>
-              {badge.condition && (
-                <p className="text-[8px] text-luxe-gold mt-1 font-bold">Unlocked ✓</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. Biometric Bento Grid - Lighter Luxury */}
-      <div className="px-2 space-y-4">
-        <div className="flex items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-luxe-orange animate-pulse"></div>
-            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Vitals</h2>
-          </div>
-          <TrendingUp size={16} className="text-luxe-deep opacity-40" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-1 card-pearl p-8 flex flex-col items-center justify-center gap-6 relative overflow-hidden group">
-            <div className={`absolute -bottom-10 -right-10 w-32 h-32 bg-luxe-orange/5 rounded-full blur-3xl transition-transform duration-1000 group-hover:scale-150`}></div>
-            <CircularRing value={stats.tummy} label="Hydration" color="#FF8C00" size={110} strokeWidth={10} />
-          </div>
-
-          <div className="grid grid-rows-2 gap-4">
-            <div className="card-pearl p-6 flex items-center gap-5">
-              <div className="w-14 h-14 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
-                <Droplets size={24} />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/20">Tank</span>
-                <p className="text-2xl font-bold text-luxe-deep tracking-tight">{Math.round(stats.tank)}<span className="text-sm opacity-20 font-medium ml-0.5">%</span></p>
-              </div>
-            </div>
-            <div className="card-pearl p-6 flex items-center gap-5">
-              <div className="w-14 h-14 rounded-3xl bg-luxe-gold/10 flex items-center justify-center text-luxe-gold shadow-inner">
-                <Zap size={24} />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/20">Energy</span>
-                <p className="text-2xl font-bold text-luxe-deep tracking-tight">{Math.round(stats.energy)}<span className="text-sm opacity-20 font-medium ml-0.5">%</span></p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Predictive Model - High Impact Pearl */}
-        <div className={`mt-8 transition-all duration-700 ${stats.urgency > 0.7 ? 'scale-[1.03]' : 'scale-100'}`}>
-          <div className={`card-pearl p-10 relative overflow-hidden transition-all duration-700 ${stats.urgency > 0.8 ? 'border-luxe-orange/30 shadow-[0_30px_70px_rgba(255,140,0,0.1)]' : ''}`}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-luxe-orange/5 rounded-bl-[100%] transition-opacity duration-1000 group-hover:opacity-20 pointer-events-none"></div>
-
-            <div className="flex items-center justify-between mb-8 relative z-10">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stats.urgency > 0.8 ? 'bg-luxe-orange text-white shadow-xl' : 'bg-luxe-base text-luxe-deep/40'}`}>
-                  <AlertCircle size={22} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-luxe-deep">Potty Prediction</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Confidence Delta</p>
-                </div>
-              </div>
-              <div className={`text-4xl font-serif italic font-bold tracking-tighter ${stats.urgency > 0.8 ? 'text-luxe-orange' : 'text-luxe-deep/20'}`}>
-                {Math.round(stats.urgency * 100)}%
-              </div>
-            </div>
-
-            <div className="relative h-4 bg-luxe-base rounded-full overflow-hidden mb-8 p-1">
-              <div
-                className={`h-full transition-all duration-[2000ms] rounded-full cubic-bezier(0.16, 1, 0.3, 1) ${stats.urgency > 0.8 ? 'bg-gradient-to-r from-luxe-orange to-luxe-sunset' : 'bg-luxe-deep/10'}`}
-                style={{ width: `${stats.urgency * 100}%` }}
-              >
-                <div className="w-full h-full bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%' }}></div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${stats.urgency > 0.75 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-                <p className="text-xs font-bold text-luxe-deep/40 uppercase tracking-widest">
-                  {stats.urgency > 0.75 ? 'Action Recommended' : 'System Equilibrium'}
-                </p>
-              </div>
-              {stats.urgency > 0.7 && (
-                <button
-                  onClick={handleTakeBreak}
-                  className="px-6 py-3 bg-luxe-deep text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform hover:bg-luxe-orange"
-                >
-                  Take Break
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Insights Card */}
-      {events.length >= 5 && (
-        <div className="px-4">
-          <div className="card-pearl p-8 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-[1.5rem] bg-purple-500/10 flex items-center justify-center text-purple-500">
-                  <Sparkles size={22} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-luxe-deep">Smart Insights</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">AI Pattern Analysis</p>
-                </div>
-              </div>
-              <button
-                onClick={fetchInsights}
-                disabled={insightsLoading}
-                className={`p-3 rounded-2xl transition-all active:scale-90 ${insightsLoading
-                    ? 'text-luxe-deep/10 animate-spin'
-                    : 'text-luxe-deep/30 hover:text-purple-500 hover:bg-purple-500/10'
-                  }`}
-              >
-                <RefreshCw size={18} />
-              </button>
-            </div>
-
-            {insightsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-5 bg-luxe-base rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }}></div>
-                ))}
-              </div>
-            ) : insights.length > 0 ? (
-              <div className="space-y-4">
-                {insights.map((insight, i) => (
-                  <div key={i} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
-                    <div className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0 shadow-[0_0_6px_rgba(168,85,247,0.4)]"></div>
-                    <p className="text-sm text-luxe-deep/70 font-medium leading-relaxed">{insight}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-luxe-deep/20 italic">Tap refresh to generate insights from your journal data.</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 4. Journal Feed - Pearlescent Timeline */}
+      {/* 2. Memory Journal - Primary Action */}
       <div className="px-4 space-y-8">
         <div className="flex items-center justify-between px-4">
           <div className="flex items-center gap-4">
@@ -608,6 +415,199 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, events, avatarMsg, dogProf
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* 3. Biometric Bento Grid - Vitals */}
+      <div className="px-2 space-y-4">
+        <div className="flex items-center justify-between px-6">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-luxe-orange animate-pulse"></div>
+            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Vitals</h2>
+          </div>
+          <TrendingUp size={16} className="text-luxe-deep opacity-40" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-1 card-pearl p-8 flex flex-col items-center justify-center gap-6 relative overflow-hidden group">
+            <div className={`absolute -bottom-10 -right-10 w-32 h-32 bg-luxe-orange/5 rounded-full blur-3xl transition-transform duration-1000 group-hover:scale-150`}></div>
+            <CircularRing value={stats.tummy} label="Hydration" color="#FF8C00" size={110} strokeWidth={10} />
+          </div>
+
+          <div className="grid grid-rows-2 gap-4">
+            <div className="card-pearl p-6 flex items-center gap-5">
+              <div className="w-14 h-14 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
+                <Droplets size={24} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/20">Tank</span>
+                <p className="text-2xl font-bold text-luxe-deep tracking-tight">{Math.round(stats.tank)}<span className="text-sm opacity-20 font-medium ml-0.5">%</span></p>
+              </div>
+            </div>
+            <div className="card-pearl p-6 flex items-center gap-5">
+              <div className="w-14 h-14 rounded-3xl bg-luxe-gold/10 flex items-center justify-center text-luxe-gold shadow-inner">
+                <Zap size={24} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-luxe-deep/20">Energy</span>
+                <p className="text-2xl font-bold text-luxe-deep tracking-tight">{Math.round(stats.energy)}<span className="text-sm opacity-20 font-medium ml-0.5">%</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Predictive Model - Potty Prediction */}
+        <div className={`mt-8 transition-all duration-700 ${stats.urgency > 0.7 ? 'scale-[1.03]' : 'scale-100'}`}>
+          <div className={`card-pearl p-10 relative overflow-hidden transition-all duration-700 ${stats.urgency > 0.8 ? 'border-luxe-orange/30 shadow-[0_30px_70px_rgba(255,140,0,0.1)]' : ''}`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-luxe-orange/5 rounded-bl-[100%] transition-opacity duration-1000 group-hover:opacity-20 pointer-events-none"></div>
+
+            <div className="flex items-center justify-between mb-8 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stats.urgency > 0.8 ? 'bg-luxe-orange text-white shadow-xl' : 'bg-luxe-base text-luxe-deep/40'}`}>
+                  <AlertCircle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-luxe-deep">Potty Prediction</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">Confidence Delta</p>
+                </div>
+              </div>
+              <div className={`text-4xl font-serif italic font-bold tracking-tighter ${stats.urgency > 0.8 ? 'text-luxe-orange' : 'text-luxe-deep/20'}`}>
+                {Math.round(stats.urgency * 100)}%
+              </div>
+            </div>
+
+            <div className="relative h-4 bg-luxe-base rounded-full overflow-hidden mb-8 p-1">
+              <div
+                className={`h-full transition-all duration-[2000ms] rounded-full cubic-bezier(0.16, 1, 0.3, 1) ${stats.urgency > 0.8 ? 'bg-gradient-to-r from-luxe-orange to-luxe-sunset' : 'bg-luxe-deep/10'}`}
+                style={{ width: `${stats.urgency * 100}%` }}
+              >
+                <div className="w-full h-full bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%' }}></div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${stats.urgency > 0.75 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                <p className="text-xs font-bold text-luxe-deep/40 uppercase tracking-widest">
+                  {stats.urgency > 0.75 ? 'Action Recommended' : 'System Equilibrium'}
+                </p>
+              </div>
+              {stats.urgency > 0.7 && (
+                <button
+                  onClick={handleTakeBreak}
+                  className="px-6 py-3 bg-luxe-deep text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform hover:bg-luxe-orange"
+                >
+                  Take Break
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. AI Insights Card */}
+      {events.length >= 5 && (
+        <div className="px-4">
+          <div className="card-pearl p-8 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-[1.5rem] bg-purple-500/10 flex items-center justify-center text-purple-500">
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-luxe-deep">Smart Insights</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-20 mt-0.5">AI Pattern Analysis</p>
+                </div>
+              </div>
+              <button
+                onClick={fetchInsights}
+                disabled={insightsLoading}
+                className={`p-3 rounded-2xl transition-all active:scale-90 ${insightsLoading
+                  ? 'text-luxe-deep/10 animate-spin'
+                  : 'text-luxe-deep/30 hover:text-purple-500 hover:bg-purple-500/10'
+                  }`}
+              >
+                <RefreshCw size={18} />
+              </button>
+            </div>
+
+            {insightsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-5 bg-luxe-base rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }}></div>
+                ))}
+              </div>
+            ) : insights.length > 0 ? (
+              <div className="space-y-4">
+                {insights.map((insight, i) => (
+                  <div key={i} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+                    <div className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0 shadow-[0_0_6px_rgba(168,85,247,0.4)]"></div>
+                    <p className="text-sm text-luxe-deep/70 font-medium leading-relaxed">{insight}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-luxe-deep/20 italic">Tap refresh to generate insights from your journal data.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Streaks & Achievements */}
+      <div className="px-4 space-y-6">
+        {/* Streak Counters */}
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Flame size={16} className="text-luxe-orange" />
+            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Streaks</h2>
+          </div>
+        </div>
+        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+          {[
+            { label: 'Walks', value: streaks.walks, icon: '🚶', color: 'from-emerald-500/20 to-emerald-500/5' },
+            { label: 'Feeding', value: streaks.feeding, icon: '🍽️', color: 'from-luxe-orange/20 to-luxe-orange/5' },
+            { label: 'Hydration', value: streaks.hydration, icon: '💧', color: 'from-blue-500/20 to-blue-500/5' },
+          ].map(s => (
+            <div key={s.label} className={`flex-shrink-0 card-pearl p-5 min-w-[120px] text-center relative overflow-hidden group`}>
+              <div className={`absolute inset-0 bg-gradient-to-b ${s.color} opacity-50`}></div>
+              <div className="relative z-10">
+                <span className="text-2xl">{s.icon}</span>
+                <p className={`text-3xl font-bold mt-2 tracking-tight ${s.value > 0 ? 'text-luxe-deep' : 'text-luxe-deep/20'}`}>
+                  {s.value}<span className="text-sm font-medium opacity-40 ml-0.5">d</span>
+                </p>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-luxe-deep/30">{s.label}</span>
+              </div>
+              {s.value >= 3 && (
+                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-luxe-orange animate-pulse shadow-[0_0_8px_rgba(255,140,0,0.6)]"></div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Achievement Badges */}
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Award size={16} className="text-luxe-gold" />
+            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-luxe-deep opacity-60">Badges</h2>
+          </div>
+          <span className="text-[10px] font-bold text-luxe-deep/20">{badges.filter(b => b.condition).length}/{badges.length}</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+          {badges.map(badge => (
+            <div
+              key={badge.name}
+              className={`flex-shrink-0 card-pearl p-4 min-w-[100px] text-center transition-all duration-500 ${badge.condition
+                ? 'badge-shine border-luxe-gold/20'
+                : 'opacity-30 grayscale'
+                }`}
+            >
+              <span className="text-3xl block">{badge.icon}</span>
+              <p className="text-[9px] font-black uppercase tracking-widest text-luxe-deep/60 mt-2 leading-tight">{badge.name}</p>
+              {badge.condition && (
+                <p className="text-[8px] text-luxe-gold mt-1 font-bold">Unlocked ✓</p>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
